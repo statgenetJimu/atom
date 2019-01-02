@@ -18,3 +18,17 @@ Windows, Mac, Linuxの３OSに対応している。
 OSをまたがって使うときには文字コードも揃えたい。
 Atomの場合、ファイルを開くと、アプリケーションの右下にエンコーディング指定ができるのでWindosｓの場合にもUTF-8を指定しておくと良いだろう。
 そうすることで３OSで文字コードを揃えることができる。
+
+# githubとの連携
+
+githubに連携したいrepositoryを作る。
+git clone して、ローカルにgithub のrepositoryに対応するディレクトリを作る。
+Atomでそのディレクトリを指定して新しいプロジェクトフォルダとして追加する。
+
+あとは、そのフォルダの中のファイルを修正したり、新しいファイルを作ったりする。
+
+ローカルでの変更を保存すると、git タブのUnstaged Changesのところに、変更を持つファイルが現れる。
+
+Unstaged Changesの右上のStage Allをクリックすると、そのファイルがStaged Changesに移動する。
+
+この状態で、Commit messageにメッセージを入れ、その下にあるCommit to masterをクリックすることで、その下にCommitするべき内容が現れる。そして、Atomアプリケーションの末尾（の通常はFetchと書かれている部分）にPushという文字が現れるので、それをクリックすると、githubに変化が反映する。
