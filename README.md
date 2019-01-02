@@ -39,3 +39,11 @@ Atomでそのディレクトリを指定して新しいプロジェクトフォ�
 Unstaged Changesの右上のStage Allをクリックすると、そのファイルがStaged Changesに移動する。
 
 この状態で、Commit messageにメッセージを入れ、その下にあるCommit to masterをクリックすることで、その下にCommitするべき内容が現れる。そして、Atomアプリケーションの末尾（の通常はFetchと書かれている部分）にPushという文字が現れるので、それをクリックすると、githubに変化が反映する。
+
+# Windowsのpython環境
+
+Windowsでpython環境を作るのには、anacondaで一通りを入れるのがよいが、普通に入れると、パスが通らなかったり、windows10だと、パスを後付けで通そうにも何がなんだかわからなかったりする。
+
+ということで、こちら https://qiita.com/kumazawajiro/items/864a8bf99bc97eee10ea にある"choco install anaconda3 --params="/AddToPath:1" というコマンドでアナコンダをインストールし、パスも通してもらうことにする。
+
+そのためにはchocolateyというものを入れる必要があるそうで、そのためには管理者権限でpowershellを使うのがよいらしい。こちら https://ryamada.hatenadiary.jp/entry/20190102/1546431857 にメモしておいた。
