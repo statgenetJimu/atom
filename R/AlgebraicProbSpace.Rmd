@@ -62,3 +62,61 @@ my.stateFx(my.involFx(x)) - Conj(my.stateFx(x))
 Mod(my.stateFx(my.involFx(x) %*% y))^2 - my.stateFx(my.involFx(x)%*%x) * my.stateFx(my.involFx(y)%*%y) # < 0
 ```
 ## 例２　実数全体をAとし、自身への写像を$\psi$としたもの
+
+```{r}
+# complex -> real
+my.rnormreal <- function(n){
+  rnorm(n) 
+}
+d <- 1 # 2 -> 1
+x <- matrix(my.rnormreal(d^2),d,d)
+y <- matrix(my.rnormreal(d^2),d,d)
+z <- matrix(my.rnormreal(d^2),d,d)
+x+y - (y+x)
+lambda <- my.rnormcomplex(1)
+lambda * (x * y) - ((lambda*x)*y)
+zero <- matrix(0,d,d)
+one <- diag(rep(1,d))
+x - (x+zero)
+x - (x %*% one)
+
+x %*% y - (y %*% x) # not equal
+```
+
+### 対合 involution
+
+```{r}
+my.involFx <- function(x){
+  t(Conj(x))
+}
+x - t(my.involFx(x)) # Real = 0
+
+x_ <- my.involFx(x)
+y_ <- my.involFx(y)
+my.involFx(x+y) - (x_ + y_)
+my.involFx(lambda*x) - Conj(lambda) * x_
+(my.involFx(x %*% y)) - my.involFx(y) %*% my.involFx(x)
+my.involFx(my.involFx(x)) - x
+```
+
+### 状態（複素数への写像）として、トレースを次元で割った値を取り上げる
+
+```{r}
+my.stateFx <- function(x){
+  sum(diag(x))/ncol(x)
+}
+
+mu <- my.rnormcomplex(1)
+
+my.stateFx(lambda*x + mu*y) - (lambda*my.stateFx(x) + mu*my.stateFx(y))
+
+my.stateFx(x%*%my.involFx(x)) # >=0
+my.stateFx(one)
+```
+
+### *-代数と状態のペア
+
+```{r}
+my.stateFx(my.involFx(x)) - Conj(my.stateFx(x))
+Mod(my.stateFx(my.involFx(x) %*% y))^2 - my.stateFx(my.involFx(x)%*%x) * my.stateFx(my.involFx(y)%*%y) # < 0
+```
