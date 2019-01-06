@@ -71,6 +71,8 @@ my.stateMat <- function(my.stateFx,d){
 }
 rho <- my.stateMat(my.stateFx,d)
 rho
+eigen(rho)
+sum(diag(rho))
 ```
 ### *-代数と状態のペア
 
@@ -99,6 +101,10 @@ my.stateFx(lambda*x + mu*y) - (lambda*my.stateFx(x) + mu*my.stateFx(y))
 
 my.stateFx(x%*%my.involFx(x)) # >=0　確率密度のようなもの
 my.stateFx(one)
+rho <- my.stateMat(my.stateFx,d)
+rho
+eigen(rho)
+sum(diag(rho))
 ```
 
 
@@ -153,6 +159,10 @@ my.stateFx(lambda*x + mu*y) - (lambda*my.stateFx(x) + mu*my.stateFx(y))
 
 my.stateFx(x%*%my.involFx(x)) # >=0
 my.stateFx(one)
+rho <- my.stateMat(my.stateFx,d)
+rho
+eigen(rho)
+sum(diag(rho))
 ```
 
 ### *-代数と状態のペア
