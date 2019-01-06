@@ -51,7 +51,7 @@ mu <- my.rnormcomplex(1)
 
 my.stateFx(lambda*x + mu*y) - (lambda*my.stateFx(x) + mu*my.stateFx(y))
 
-my.stateFx(x%*%my.involFx(x)) # >=0
+my.stateFx(x%*%my.involFx(x)) # >=0　確率密度のようなもの
 my.stateFx(one)
 ```
 
@@ -59,6 +59,7 @@ my.stateFx(one)
 
 ```{r}
 my.stateFx(my.involFx(x)) - Conj(my.stateFx(x))
+# 内積のようなもの
 Mod(my.stateFx(my.involFx(x) %*% y))^2 - my.stateFx(my.involFx(x)%*%x) * my.stateFx(my.involFx(y)%*%y) # < 0
 ```
 ## 例２　実数全体をAとし、自身への写像を$\psi$としたもの
@@ -66,7 +67,7 @@ Mod(my.stateFx(my.involFx(x) %*% y))^2 - my.stateFx(my.involFx(x)%*%x) * my.stat
 ```{r}
 # complex -> real
 my.rnormreal <- function(n){
-  rnorm(n) 
+  rnorm(n)
 }
 d <- 1 # 2 -> 1
 x <- matrix(my.rnormreal(d^2),d,d)
