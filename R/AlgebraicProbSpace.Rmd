@@ -55,6 +55,23 @@ my.stateFx(x%*%my.involFx(x)) # >=0　確率密度のようなもの
 my.stateFx(one)
 ```
 
+### 状態は正定値正方行列であって、トレースが１であるようなものに１対１対応する
+
+```{r}
+my.stateMat <- function(my.stateFx,d){
+  ret <- matrix(0,d,d)
+  for(i in 1:d){
+    for(j in 1:d){
+      tmp <- matrix(0,d,d)
+      tmp[i,j] <- 1
+      ret[i,j] <- my.stateFx(tmp)
+    }
+  }
+  return(ret)
+}
+rho <- my.stateMat(my.stateFx,d)
+rho
+```
 ### *-代数と状態のペア
 
 ```{r}
@@ -73,15 +90,15 @@ $$
 eta <- my.rnormcomplex(d)
 eta <- eta/sqrt(sum(Mod(eta)^2))
 
-my.stateFx <-function(eta,x){
+my.stateFx <-function(x){
   sum(Conj(eta)* (x%*%eta))
 }
 mu <- my.rnormcomplex(1)
 
-my.stateFx(eta,lambda*x + mu*y) - (lambda*my.stateFx(eta,x) + mu*my.stateFx(eta,y))
+my.stateFx(lambda*x + mu*y) - (lambda*my.stateFx(x) + mu*my.stateFx(y))
 
-my.stateFx(eta,x%*%my.involFx(x)) # >=0　確率密度のようなもの
-my.stateFx(eta,one)
+my.stateFx(x%*%my.involFx(x)) # >=0　確率密度のようなもの
+my.stateFx(one)
 ```
 
 
