@@ -1,0 +1,16 @@
+# 博士課程「ゲノム統計学大意」 修士課程「ゲノムサイエンス概論」の合同講義
+
+90分　ｘ　15コマ = 45分　ｘ　30コマ
+
+## 基礎事項確認
+
++ 学部１回生の講義資料　分子遺伝学：https://github.com/ryamada22/MolGenetics
++ https://www.edx.org/course/introduction-to-statistical-methods-for-gene-mapping
+
+の第１セクション
+
+
+```{r}
+x <- runif(10)
+plot(x)
+```
