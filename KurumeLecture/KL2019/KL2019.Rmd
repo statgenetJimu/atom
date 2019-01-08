@@ -86,6 +86,14 @@ prop.trend.test()
 
 [FDR](http://www.med.osaka-u.ac.jp/pub/kid/clinicaljournalclub1.html)
 
+## 次世代シークエンサーとポアソン分布・負の二項分布
+
+## 確率モデルと尤度
+
+### 最尤推定
+
+
+
 ## 多様性(遺伝型の多様性・表現型の多様性)
 
 * 単座位　－　二値表現型
