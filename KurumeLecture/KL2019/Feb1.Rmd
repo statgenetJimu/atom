@@ -2,6 +2,7 @@
 
 ## スケジュール
 90分　ｘ　15コマ = 45分　ｘ　30コマ
+金 3-7限、土 1-2限
 
 ## 1-1 イントロダクション
 ## 1-2 分子遺伝学概論（１）
@@ -29,8 +30,8 @@
 ## 12-2 系統樹というクラスタリング
 ## 13-1 ネットワークというグラフ
 ## 13-2 非線形クラスタリング tSNEを自力で使う
-## 14-1,14-2,15-1,15-2は予備。きっと時間が足りなくなるから
-
+## 14-1,14-2は予備。きっと時間が足りなくなるから
+## 15-1,15-2 試験・試験
 
 ## 1-1 イントロダクション
 * 自己紹介・受講目的確認
@@ -39,47 +40,200 @@
   * ゲノム・オミックス学
   * ゲノム統計学
 
-## 1-2,2-1,2-2 分子遺伝学概論
+  ## 1-2 分子遺伝学概論（１）
+  ## 2-1 分子遺伝学概論（２）
+  ## 2-2 分子遺伝学概論（３）
+  * [ゲノムとオミックス](http://omics.jp/about-omics)
 
-### 全体構成
-
-１　 分子遺伝学概論
-
-２　SNPだけで学ぶ統計学
-
-p値(2)
-
-カイ二乗検定と正確確率検定(3)
-
-確率と尤度(4)
-
-推定・最尤推定(5)
-
-EMアルゴリズム(6)
-
-Hardy-Weinberg 平衡(7)
-
-多重検定(8)
-
-パーミュテーションテスト（と正確確率検定）(9)
-
-３　SNP以外で学ぶ統計学
-
-リードマッピングとポアソン分布(10)
-
-クラスタリング・系統樹・グラフ(11)
-分子遺伝学概論
-* [ゲノムとオミックス](http://omics.jp/about-omics)
-
-* [統計学](https://ja.wikipedia.org/wiki/%E7%B5%B1%E8%A8%88%E5%AD%A6)
-* [(機械)学習](https://ja.wikipedia.org/wiki/%E6%A9%9F%E6%A2%B0%E5%AD%A6%E7%BF%92)
+  * [統計学](https://ja.wikipedia.org/wiki/%E7%B5%B1%E8%A8%88%E5%AD%A6)
+  * [(機械)学習](https://ja.wikipedia.org/wiki/%E6%A9%9F%E6%A2%B0%E5%AD%A6%E7%BF%92)
 
 
-### 参考資料
+  ### 参考資料
 
-* 学部１回生の講義資料　分子遺伝学：https://github.com/ryamada22/MolGenetics
-* https://www.edx.org/course/introduction-to-statistical-methods-for-gene-mapping の第１セクション
-* オーム社『遺伝統計学の基礎』ISBN 978-4-274-06822-5
+  * 学部１回生の講義資料　分子遺伝学：https://github.com/ryamada22/MolGenetics
+  * https://www.edx.org/course/introduction-to-statistical-methods-for-gene-mapping の第１セクション
+  * オーム社『遺伝統計学の基礎』ISBN 978-4-274-06822-5
+
+  ### 読み物
+
+  * [多型](https://ja.wikipedia.org/wiki/%E5%A4%9A%E5%9E%8B)
+
+
+  ## 3-1 p値と検定
+  * [参考スライド](http://www.statgenet.med.kyoto-u.ac.jp/wiki_tokyo/index.php/%E6%97%A5%E6%9C%AC%E4%BA%BA%E9%A1%9E%E9%81%BA%E4%BC%9D%E5%AD%A6%E4%BC%9A%E6%95%99%E8%82%B2%E8%AC%9B%E6%BC%94_p%E5%80%A4%E3%81%8B%E3%82%89%E8%80%83%E3%81%88%E3%82%8B%E3%82%B2%E3%83%8E%E3%83%A0%E7%96%AB%E5%AD%A6%E8%A7%A3%E6%9E%90%E6%89%8B%E6%B3%95)(3-1～6-2)
+
+  ```{r}
+# 一様分布からの乱数発生
+n <- 1000
+r <- runif(n)
+plot(r)
+hist(r)
+plot(sort(r))
+  ```
+  ## 3-2 解析の再現性とRmarkdown
+* [Rstudio](https://qiita.com/hujuu/items/ddd66ae8e6f3f989f2c0)
+* R,reproducibility,再現性でウェブ検索して情報を集めてみる
+* この講義のノートを書いてみる。うまく行かなければコピーペーストしてから考える
+  ## 4-1 帰無仮説、データシミュレーション作成、一様分布
+
+  ランダムにn個の値(0か1)を発生させる。
+  それとは別に、やはりランダムにn個の値(0か1)を発生させる。
+
+  2x2表を作る。
+  カイ二乗検定をする。
+
+  ```{r}
+n <- 10000
+X <- sample(c(0,1),n,replace=TRUE)
+Y <- sample(c(0,1),n,replace=TRUE)
+plot(X,Y)
+table(X,Y)
+tab <- table(X,Y)
+chisq.test(tab)
+  ```
+* p値ってなんだっけ？
+* カイ二乗値ってなんだっけ？
+* 自由度ってなんだっけ？
+
+たくさんのp値を発生させてみる。
+```{r}
+n.iter <- 1000
+ps <- rep(0,n.iter)
+for(i in 1:n.iter){
+  X <- sample(c(0,1),n,replace=TRUE)
+  Y <- sample(c(0,1),n,replace=TRUE)
+  tab <- table(X,Y)
+  chisqout <- chisq.test(tab)
+  ps[i] <- chisqout$p.value
+}
+```
+```{r}
+hist(ps)
+plot(sort(ps))
+```
+
+  ## 4-2 2x2表のカイ二乗検定とフィッシャーの正確確率検定
+
+黒板を使う講義
+
+[Wikipediaの記事](https://ja.wikipedia.org/wiki/%E3%83%95%E3%82%A3%E3%83%83%E3%82%B7%E3%83%A3%E3%83%BC%E3%81%AE%E6%AD%A3%E7%A2%BA%E7%A2%BA%E7%8E%87%E6%A4%9C%E5%AE%9A)
+
+小さい表を使って、周辺度数を共有するテーブルを全列挙してみる。
+
+正確生起確率を計算してみる。
+
+```{r}
+my.exact.prob <- function(tab){
+  a <- tab[1,1]
+  b <- tab[1,2]
+  c <- tab[2,1]
+  d <- tab[2,2]
+  ab <- a + b
+  cd <- c + d
+  ac <- a + c
+  bd <- b + d
+  n <- sum(tab)
+  bunbo <- factorial(n) * factorial(a)*factorial(b)*factorial(c)*factorial(d)
+  bunsi <- factorial(ab)*factorial(cd)*factorial(ac)*factorial(bd)
+  prob <- bunsi / bunbo
+  return(prob)
+}
+```
+
+足し合わせてみる。
+```{r}
+tab1 <- matrix(c(1,1,1,0),2,2)
+tab1
+tab2 <- matrix(c(2,0,0,1),2,2)
+my.exact.prob(tab1)
+my.exact.prob(tab2)
+```
+
+自由度って…
+
+```{r}
+fisher.test(tab)
+```
+  ## 5-1 SNVだけで学ぶ統計学　イントロダクション
+[スライド](http://www.statgenet.med.kyoto-u.ac.jp/wiki_tokyo/index.php/%E6%97%A5%E6%9C%AC%E4%BA%BA%E9%A1%9E%E9%81%BA%E4%BC%9D%E5%AD%A6%E4%BC%9A%E6%95%99%E8%82%B2%E8%AC%9B%E6%BC%94_p%E5%80%A4%E3%81%8B%E3%82%89%E8%80%83%E3%81%88%E3%82%8B%E3%82%B2%E3%83%8E%E3%83%A0%E7%96%AB%E5%AD%A6%E8%A7%A3%E6%9E%90%E6%89%8B%E6%B3%95)
+
+  ## 5-2 アレル、ディプロタイプ、ハーディワインベルグ平衡
+
+黒板を使う
+
+* 赤球と白球の集まりからランダムに２個取り出す。
+* 赤球と白球の集まりからランダムにペアを作る。
+* できたペアは(赤、赤)、(赤、白)、(白、白)の３通り。
+* その割合は？
+
+
+  ## 6-1 ケースコントロール・スタディ 2x3表
+  ## 6-2 ケースコントロール・スタディ 2x3表
+
+[スライド](http://www.statgenet.med.kyoto-u.ac.jp/wiki_tokyo/index.php/%E6%97%A5%E6%9C%AC%E4%BA%BA%E9%A1%9E%E9%81%BA%E4%BC%9D%E5%AD%A6%E4%BC%9A%E6%95%99%E8%82%B2%E8%AC%9B%E6%BC%94_p%E5%80%A4%E3%81%8B%E3%82%89%E8%80%83%E3%81%88%E3%82%8B%E3%82%B2%E3%83%8E%E3%83%A0%E7%96%AB%E5%AD%A6%E8%A7%A3%E6%9E%90%E6%89%8B%E6%B3%95)
+
+  ## 7-1 確率と尤度
+
+黒板を使う
+
+### 確率
+* 赤球と白球
+* p:1-p
+* n個取り出す
+* k:n-kになる確率は？
+
+$$
+n_C_k p^k (1-p)^{n-k}
+$$
+
+### 尤度
+
+* n個のうちわけがk:n-kだったとする
+* pが0.2と仮定したときにk:n-kになる確率は？
+* pが0.3と仮定したときにk:n-kになる確率は？
+* それぞれを、k:n-kという観測を見て想定する、pがxxxである尤度、と言う
+* 尤度の計算は確率そのものだから、言い方・捉え方の違いがあるだけで同じもの
+*
+  ## 7-2 最尤推定と二項分布とベータ分布
+
+* 尤度を考え合わせて、その総和が1になるように調整する
+* それは確率密度(質量)分布
+* 二項分布とベータ分布とは「確率」と「尤度」との相互関係
+
+* あるパラメタの値が尤度を最大にする。そのような値を最尤推定値という
+
+Rでやってみる。
+
+```{r}
+ps <- seq(from=0,to=1,length=1000)
+n <- 10
+k <- 3
+db <- dbeta(ps,k+1,n-k+1) # "+1"はおまじない
+plot(ps,db,type="l")
+```
+
+* まだ何も観察されていないときの尤度はどうなる？
+* n=1のときの尤度はどうなる
+* 最尤推定値と期待値
+* 最尤ではない推定値、分布推定、ベイズ
+
+  ## 8-1 ハプロタイプと連鎖不平衡
+  ## 8-2 連鎖不平衡係数とEMアルゴリズム
+  ## 9-1 多重検定とボンフェロニ補正
+  ## 9-2 多重検定とパーミュテーション法(と正確確率法)
+  ## 10-1 次世代シークエンサーデータとリードのマッピング
+  ## 10-2 デプスとSNV
+  ## 11-1 SNV以外で学ぶ統計学　イントロダクション
+  ## 11-2 トランスクリプトームとヒートマップ
+  ## 12-1 クラスタリング、階層化と非階層化
+  ## 12-2 系統樹というクラスタリング
+  ## 13-1 ネットワークというグラフ
+  ## 13-2 非線形クラスタリング tSNEを自力で使う
+  ## 14-1,14-2は予備。きっと時間が足りなくなるから
+  ## 15-1,15-2 試験・試験
+
+
 
 
 ２　SNPだけで学ぶ統計学
