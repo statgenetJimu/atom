@@ -11,6 +11,19 @@
   * ID番号という考え方
   * 手作業のバージョン管理
   * ツールを使ったバージョン管理
+
+https://www.ulpurelearning.com/hubfs/eduneeringresources/Resource_Center/White_Papers/UL/UL_ComplianceWire_10_Must_Haves_LMS_2016.pdf?__hstc=259046869.d300aa189869f4c6d44764b44698ae13.1549413342273.1549413342273.1549413342273.1&__hssc=259046869.1.1549413342273&__hsfp=603591716
+
+LIMS
+https://en.wikipedia.org/wiki/Laboratory_information_management_system
+
+genme hg37, hg38
+https://cell-innovation.nig.ac.jp/surfers/GRCh38_Hg38_defference.html
+
+mRNA ID
+
+マイナンバー
+
 * INとコマンドとOUT
 * Reproducibility(再現性)
 
