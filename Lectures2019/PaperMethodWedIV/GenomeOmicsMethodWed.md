@@ -23,6 +23,9 @@ Check the pertinent sections on data-science methods.
 
 ## (3) April 24
 
+* Describe the items with ONE sentence as;
+  * X takes Y and returns Z with W, a conceptual description of the procedure.
+
 ## (4) May 8
 
 * JD-course students from Canada may join us from May 8.
