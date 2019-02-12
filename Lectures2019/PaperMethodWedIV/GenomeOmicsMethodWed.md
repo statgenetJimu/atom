@@ -25,6 +25,8 @@ Check the pertinent sections on data-science methods.
 
 ## (4) May 8
 
+* JD-course students from Canada may join us from May 8.
+
 ## (5) May 15
 
 ## (6) May 22
