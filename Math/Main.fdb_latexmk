@@ -1,0 +1,14 @@
+# Fdb version 3
+["pdflatex"] 1549883565 "Main.tex" "Main.pdf" "Main" 1549883565
+  "/usr/local/texlive/2018/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb" 1480098733 32762 224316ccc9ad3ca0423a14971cfa7fc1 ""
+  "/usr/local/texlive/2018/texmf-dist/tex/platex/jsclasses/jsarticle.cls" 1520799791 59147 ef9dc8395fc5eca058217e3988639a48 ""
+  "/usr/local/texlive/2018/texmf-dist/web2c/texmf.cnf" 1522066949 33362 cf75436e19743e94a92a6b1b9183c434 ""
+  "/usr/local/texlive/2018/texmf-var/fonts/map/pdftex/updmap/pdftex.map" 1523934492 2717033 f61a5287d9c22a39a74f1979fe3f905c ""
+  "/usr/local/texlive/2018/texmf-var/web2c/pdftex/pdflatex.fmt" 1549883317 4220280 d1f7c8c0ebea791a30f2c16d09b11b19 ""
+  "/usr/local/texlive/2018/texmf.cnf" 1523934483 577 0b39adfd7c93507ff20c9c14c2f1a33f ""
+  "Main.aux" 1549883565 8 a94a2480d3289e625eea47cd1b285758 ""
+  "Main.tex" 1549883552 81 bb781b6741eb4dc493c932e7c4a4ca6e ""
+  (generated)
+  "Main.aux"
+  "Main.pdf"
+  "Main.log"
