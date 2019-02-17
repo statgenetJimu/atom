@@ -1,0 +1,227 @@
+---
+title: "パーシステントホモロジーを学ぶ"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+パッケージのインストール。
+このTDAパッケージはパーシステントホモロジーのライブラリとしてあちこちに見られるもの(GUDHI,Dionysus,PHAT)をベースにしたRラッパーらしいので、これを使うのは多分正解。
+```{r}
+library(TDA)
+```
+
+二次元平面に円があるとして、そこから取られた乱点を作る。
+これが観測データとして、パーシステントホモロジーを使って、「形状」などについて解析を加えていく。
+```{r}
+X <- circleUnif(400)
+plot(X)
+```
+
+次に、この円状オブジェクトの置かれている空間を評価する為に、長方形領域のグリッド点を発生させる。
+
+```{r}
+Xlim <- c(-1.6,1.6)
+Ylim <- c(-1.7,1.7)
+by <- 0.065
+Xseq <- seq(from=Xlim[1],to=Xlim[2],by=by)
+Yseq <- seq(from=Ylim[1],to=Ylim[2],by=by)
+Grid <- expand.grid(Xseq,Yseq)
+plot(Grid,pch=20,cex=0.1)
+```
+
+## 点集合からの「距離」を定める
+グリッド点のそれぞれについて、円周状の点集合からの「距離」を計算する。
+このdistFct()関数は、Xの点の中でもっとも短いユークリッド距離の二乗（二乗ノルム）の最小値を返すらしい。
+
+```{r}
+distance <- distFct(X = X, Grid=Grid)
+DD <- distance
+persp(Xseq, Yseq,matrix(DD, ncol = length(Yseq), nrow = length(Xseq)), xlab = "",ylab = "", zlab = "", theta = -20, phi = 35, ltheta = 50,col = 2, border = NA, main = "", d = 0.5, scale = FALSE,expand = 3, shade = 0.9)
+
+image(matrix(DD,length(Xseq),length(Yseq)))
+```
+
+別の方法で、グリッド点と円周状の点集合からの「距離」とを計算する。
+DTMはm0をパラメタとしてスムージングしながら「距離」を定める仕様になっている。
+DTMの定義は、ビグネット https://cran.r-project.org/web/packages/TDA/vignettes/article.pdf を参照。
+
+```{r}
+m0 <- 0.1
+DTM <- dtm(X=X,Grid=Grid,m0=m0)
+DD <- DTM
+persp(Xseq, Yseq,matrix(DD, ncol = length(Yseq), nrow = length(Xseq)), xlab = "",ylab = "", zlab = "", theta = -20, phi = 35, ltheta = 50,col = 2, border = NA, main = "", d = 0.5, scale = FALSE,expand = 3, shade = 0.9)
+image(matrix(DD,length(Xseq),length(Yseq)))
+```
+
+m0値を変えてみよう。
+```{r}
+m0 <- 0.99
+DTM <- dtm(X=X,Grid=Grid,m0=m0)
+DD <- DTM
+persp(Xseq, Yseq,matrix(DD, ncol = length(Yseq), nrow = length(Xseq)), xlab = "",ylab = "", zlab = "", theta = -20, phi = 35, ltheta = 50,col = 2, border = NA, main = "", d = 0.5, scale = FALSE,expand = 3, shade = 0.9)
+image(matrix(DD,length(Xseq),length(Yseq)))
+```
+
+ここまではグリッド点と点集合Xとの距離を計算していた。
+
+## 分布推定
+点集合から、その背景にある「分布」を推定してみる。
+
+k-nearest neighbor 法でグリッド各点の確率密度を推定している。
+kの値が小さければ細かく、大きければ粗く推定される。
+
+```{r}
+k <- 60
+kNN <- knnDE(X=X,Grid=Grid,k=k)
+DD <- kNN
+persp(Xseq, Yseq,matrix(DD, ncol = length(Yseq), nrow = length(Xseq)), xlab = "",ylab = "", zlab = "", theta = -20, phi = 35, ltheta = 50,col = 2, border = NA, main = "", d = 0.5, scale = FALSE,expand = 3, shade = 0.9)
+image(matrix(DD,length(Xseq),length(Yseq)))
+```
+
+```{r}
+k <- 100
+kNN <- knnDE(X=X,Grid=Grid,k=k)
+DD <- kNN
+persp(Xseq, Yseq,matrix(DD, ncol = length(Yseq), nrow = length(Xseq)), xlab = "",ylab = "", zlab = "", theta = -20, phi = 35, ltheta = 50,col = 2, border = NA, main = "", d = 0.5, scale = FALSE,expand = 3, shade = 0.9)
+image(matrix(DD,length(Xseq),length(Yseq)))
+```
+
+ガウシアンカーネルでの密度推定もできる。
+hはその粗さを決めるパラメタ
+```{r}
+h <- 0.3
+KDE <- kde( X = X, Grid=Grid,h=h)
+DD <- KDE
+persp(Xseq, Yseq,matrix(DD, ncol = length(Yseq), nrow = length(Xseq)), xlab = "",ylab = "", zlab = "", theta = -20, phi = 35, ltheta = 50,col = 2, border = NA, main = "", d = 0.5, scale = FALSE,expand = 3, shade = 0.9)
+image(matrix(DD,length(Xseq),length(Yseq)))
+```
+
+小刻みにしてみる。
+
+```{r}
+h <- 0.1
+KDE <- kde( X = X, Grid=Grid,h=h)
+DD <- KDE
+persp(Xseq, Yseq,matrix(DD, ncol = length(Yseq), nrow = length(Xseq)), xlab = "",ylab = "", zlab = "", theta = -20, phi = 35, ltheta = 50,col = "lightblue", border = NA,  d = 1, scale = FALSE,expand = 0.5, shade = 0.9,ticktype="detailed")
+image(matrix(DD,length(Xseq),length(Yseq)))
+```
+
+グリッド点に距離を定めることと、密度推定することとに関係があることがわかったので、ガウシアンカーネルを用いて、密度推定する代わりに、「距離」を算出することにする。
+
+```{r}
+h <- 0.3
+Kdist <- kernelDist(X=X,Grid=Grid,h=h)
+DD <- Kdist
+persp(Xseq, Yseq,matrix(DD, ncol = length(Yseq), nrow = length(Xseq)), xlab = "",ylab = "", zlab = "", theta = -20, phi = 35, ltheta = 50,col = 2, border = NA, main = "", d = 0.5, scale = FALSE,expand = 3, shade = 0.9)
+image(matrix(DD,length(Xseq),length(Yseq)))
+```
+```{r}
+h <- 0.1
+Kdist <- kernelDist(X=X,Grid=Grid,h=h)
+DD <- Kdist
+persp(Xseq, Yseq,matrix(DD, ncol = length(Yseq), nrow = length(Xseq)), xlab = "",ylab = "", zlab = "", theta = -20, phi = 35, ltheta = 50,col = 2, border = NA, main = "", d = 0.5, scale = FALSE,expand = 3, shade = 0.9)
+image(matrix(DD,length(Xseq),length(Yseq)))
+```
+
+## 区間推定
+
+ブートストラップ法を用いて、グリッド点に与える値（距離・密度）の区間推定をする関数も実装されている。
+
+```{r}
+band.dtm <- bootstrapBand(X = X, FUN = dtm, Grid = Grid, B = 100, parallel = FALSE, alpha = 0.1, m0 = 0.1)
+```
+
+
+```{r}
+band.knnDE <- bootstrapBand(X = X, FUN = knnDE, Grid = Grid, B = 100, parallel = FALSE, alpha = 0.1, k=60)
+```
+```{r}
+band.kde <- bootstrapBand(X = X, FUN = kde, Grid = Grid, B = 100, parallel = FALSE, alpha = 0.1, h=0.3)
+```
+
+## さて、パーシステントホモロジー
+
+繋がったり、穴が潰れたりの様子を計算して、その結果をプロットする。
+```{r}
+DiagGrid.kde <- gridDiag(X = X, FUN = kde, h = 0.3, lim = cbind(Xlim, Ylim), by = by,sublevel = FALSE, library = "Dionysus", location = TRUE,printProgress = FALSE)
+```
+
+```{r}
+plot(DiagGrid.kde[["diagram"]], band = 2 * band.kde[["width"]])
+```
+
+```{r}
+DiagGrid.dtm <- gridDiag(X = X, FUN = dtm, m0 = 0.1, lim = cbind(Xlim, Ylim), by = by,sublevel = FALSE, library = "Dionysus", location = TRUE,printProgress = FALSE)
+```
+
+```{r}
+plot(DiagGrid.dtm[["diagram"]], band = 2 * band.dtm[["width"]])
+```
+
+結果の表示を変える。
+
+```{r}
+par(mfrow = c(1, 2), mai = c(0.8, 0.8, 0.3, 0.1))
+plot(DiagGrid.kde[["diagram"]], rotated = TRUE, band = band.kde[["width"]],main = "Rotated Diagram")
+plot(DiagGrid.kde[["diagram"]], barcode = TRUE, main = "Barcode")
+```
+
+### オリジナルの形が、２つの円の場合
+```{r}
+Circle1 <- circleUnif(60)
+Circle2 <- circleUnif(60, r = 2) + 3
+Circles <- rbind(Circle1, Circle2)
+plot(Circles)
+```
+
+## Filtration によるパーシステントホモロジー解析
+
+maxdimension=1は「形」が１次元多様体であることを指定（か？）
+
+```{r}
+maxscale <- 8 # limit of the filtration
+maxdimension <- 1 # components and loops
+DiagRips <- ripsDiag(X = Circles, maxdimension, maxscale,library = c("GUDHI", "Dionysus"), location = TRUE, printProgress = FALSE)
+```
+
+```{r}
+plot(DiagRips[["diagram"]])
+```
+
+形を単純に戻してパーシステントホモロジー解析的な（Filtrationによる)、「形」の答えを出して描く。計算時間を短くする為に、少数の点にして、まずやってみる。
+
+```{r}
+X <- circleUnif(n = 30)
+# persistence diagram of alpha complex
+DiagAlphaCmplx <- alphaComplexDiag(X = X, library = c("GUDHI", "Dionysus"), location = TRUE,printProgress = TRUE)
+```
+```{r}
+# plot
+par(mfrow = c(1, 2))
+plot(DiagAlphaCmplx[["diagram"]], main = "Alpha complex persistence diagram")
+one <- which(DiagAlphaCmplx[["diagram"]][, 1] == 1)
+one <- one[which.max(DiagAlphaCmplx[["diagram"]][one, 3] - DiagAlphaCmplx[["diagram"]][one, 2])]
+plot(X, col = 1, main = "Representative loop")
+
+for (i in seq(along = one)) {
+ for (j in seq_len(dim(DiagAlphaCmplx[["cycleLocation"]][[one[i]]])[1])) {
+  lines(DiagAlphaCmplx[["cycleLocation"]][[one[i]]][j, , ], pch = 19,cex = 1, col = i + 1)
+ }
+}
+par(mfrow = c(1, 1))
+```
+
+### 少し工夫もできる
+
+" user-defined filtration"として"  simplicial complex and the filtration values on each simplex"。
+
+上で用いた関数のカウンターパートは以下の通り。
+
+ripsDiag ---> ripsFiltration
+
+alphaComplexDiag ---> alphaComplexFiltration
+
+alphaShapeDiag ---> alphaShapeFiltration 
