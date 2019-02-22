@@ -1,0 +1,128 @@
+# グラフのフォック空間基底
+
+## グラフの隣接行列の0,1,2,....乗の複素係数多項式全体は*-代数になる
+```{r}
+library(igraph)
+n <- 10
+A <- matrix(sample(0:1,n^2,replace=TRUE,prob=c(0.8,0.2)),n,n)
+A <- A + t(A)
+diag(A) <- 0
+A[which(A!=0)] <- 1
+g <- graph.adjacency(A)
+plot(g)
+image(A)
+```
+# 隣接行列のべき乗列を作る
+```{r}
+As <- list()
+m <- 20 # 適当な値にしておく
+As[[1]] <- diag(rep(1,n))
+for(i in 1:m){
+  As[[i+1]] <- A %*% As[[i]]
+}
+As
+```
+
+# {Am} の複素係数多項式
+```{r}
+ks <- rnorm(m+1) + 1i * rnorm(m+1)
+B <- 0 + 1i * 0
+for(i in 1:(m+1)){
+  B <- B + As[[i]] * ks[i]
+}
+B
+```
+これが対合（共役転置）を持つことを確認
+```{r}
+B. <- 0 + 1i * 0
+for(i in 1:(m+1)){
+  B. <- B. + Conj(ks[i]) * As[[i]]
+}
+B.
+
+t(Conj(B)) - B.
+range(Mod(t(Conj(B))-B.))
+```
+
+## k-th距離行列も*-代数(Bose-Mesner algebra)
+
+k-th距離行列とは、(i,j)間の距離がkのときに要素が1となるような行列
+```{r}
+Aks <- list()
+distmat <- distances(g)
+maxdist <- max(distmat)
+for(i in 0:maxdist){
+  Aks[[i+1]] <- matrix(0,n,n)
+  Aks[[i+1]][which(distmat==i)] <- 1
+}
+Aks
+```
+
+k-th距離行列の張る空間も対合を持つ*-代数
+```{r}
+ks <- rnorm(maxdist+1) + 1i * rnorm(maxdist+1)
+B <- 0 + 1i * 0
+for(i in 1:(maxdist+1)){
+  B <- B + Aks[[i]] * ks[i]
+}
+B
+```
+これが対合（共役転置）を持つことを確認
+```{r}
+B. <- 0 + 1i * 0
+for(i in 1:(maxdist+1)){
+  B. <- B. + Conj(ks[i]) * Aks[[i]]
+}
+B.
+
+t(Conj(B)) - B.
+range(Mod(t(Conj(B))-B.))
+```
+
+## グラフの階層的分解と$A=A^+ + A^- + A^o$
+
+基準頂点をV1とする。
+
+隣接行列を分解することにする。
+
+```{r}
+V0id <- 1
+Aplus <- Aminus <- Azero <- matrix(0,n,n)
+ed <- which(A == 1 , arr.ind = TRUE)
+for(i in 1:length(ed[,1])){
+  v1 <- ed[i,1]
+  v2 <- ed[i,2]
+  d1 <- distmat[V0id,v1]
+  d2 <- distmat[V0id,v2]
+  if(d1 == d2 + 1){
+    Aplus[v1,v2] <- 1 
+  }else if(d1 + 1 == d2){
+    Aminus[v1,v2] <- 1 
+  }else if(d1 == d2 ){
+    Azero[v1,v2] <- 1
+  }else{
+    print("error")
+  }
+}
+A - (Aplus + Aminus + Azero)
+Aplus
+Aminus
+Azero
+```
+
+### フォックス空間を張る基底
+
+```{r}
+nfocks <- max(distmat[V0id,])
+Focks <- matrix(0,n,nfocks+1)
+for(i in 0:nfocks){
+  tmp <- which(distmat[V0id,]==i)
+  Focks[,i+1] <- rep(0,n)
+  for( j in 1:length(tmp)){
+    tmp2 <- rep(0,n)
+    tmp2[tmp[j]]<- 1
+    Focks[,i+1] <- Focks[,i+1] + tmp2
+  }
+  Focks[,i+1] <- Focks[,i+1] * length(tmp)^(-1/2)
+}
+```
