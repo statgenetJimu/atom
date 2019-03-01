@@ -1,0 +1,56 @@
+---
+title: "shiny_test"
+author: "ryamada"
+date: "Sunday, December 21, 2014"
+output: html_document
+runtime: shiny
+---
+
+## kNN法をインターラクティブに
+
+
+```{r,echo=FALSE}
+# 適当な観測データ。２次元座標xと、２値カテゴリy (0,1)
+n <- 500
+x <- cbind(rnorm(n),rexp(n,1))
+y <- rep(0,n)
+y[which(2*sin(x[,1]*2) + 0.5*x[,2]^2 +1 > 2)] <- 1
+plot(x,col=y+1,pch=20,xlim=range(x[,1]),ylim=range(x[,2]))
+```
+
+```{r,echo=FALSE}
+# グリッドを作る
+X1 <- seq(from=min(x[,1]),to=max(x[,1]),length=100)
+X2 <- seq(from=min(x[,2]),to=max(x[,2]),length=100)
+X12 <- as.matrix(expand.grid(X1,X2))
+# グリッド点と観測点との距離を測る
+d <- matrix(0,length(X12[,1]),length(y))
+for(i in 1:length(d[,1])){
+d[i,] <- sqrt((X12[i,1]-x[,1])^2 + (X12[i,2]-x[,2])^2)
+}
+# 近い順に評価して、その観測点IDを取り出す
+ord <- apply(d,1,order)
+Y.hat.value <- rep(0,length(X12[,1]))
+```
+操作パネルを作る。スライダーで値を決める。初期値がvalue。"k"という名称は、後で、renderPlotが呼び出すときに使う。
+```{r,echo=FALSE}
+inputPanel(
+  sliderInput("k", label = "kNN-adjust:",
+              min = 1, max = n, value = 5, step = 1)
+)
+```
+プロットする。inputPanelで作った、"k"という名前の可変変数を input$k と呼び出している。呼び出した値を k とした上で、あとは、kNN法のkの値としてそれを使った処理をした上でプロットすればよい。
+```{r,echo=FALSE}
+renderPlot({
+  k <- input$k
+  for(i in 1:length(Y.hat.value)){
+  Y.hat.value[i] <- mean(y[ord[1:k,i]])
+  }
+  
+  Y.hat <- rep(0,length(Y.hat.value))
+  Y.hat[which(Y.hat.value <= 0.5)] <- 0
+  Y.hat[which(Y.hat.value > 0.5)] <- 1
+  
+  plot(X12,pch=15,col=Y.hat+1,xlim=range(x[,1]),ylim=range(x[,2]))
+})
+```

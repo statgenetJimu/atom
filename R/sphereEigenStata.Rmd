@@ -1,0 +1,348 @@
+---
+title: "�?周・�?面の固有値�?解"
+output: html_document
+---
+```{r setup, include=FALSE}
+library(knitr)
+library(rgl)
+knit_hooks$set(webgl = hook_webgl)
+```
+
+# �?周
+
+�?周上に「量子力学�?固有状態～固有波動関数」を乗せるとすると
+ただの�?か、周波数を少しずつ増やしながらサインカーブが�?周上に乗ったよ�?なも�?�が�?�てくる
+
+
+固有状態�?�「固有値�?解」するとよいので、かなり細かく点をとったサイクルグラフでそ�?�様子を確認してみ�?
+
+上下�?�オフダイアゴナルに値?��が入って�?ることと、対角線から一番�?�??��点にも１が入って�?る形になることに注�?
+
+```{r}
+library(igraph)
+n <- 100
+edge.list <- cbind(1:n,c(2:n,1))
+g <- graph.edgelist(edge.list,directed=FALSE)
+ad.mat <- as.matrix(get.adjacency(g))
+
+image(ad.mat)
+```
+
+```{r}
+eigen.out <- eigen(ad.mat)
+eg.val <- eigen.out[[1]]
+plot(eg.val) # コサインカーブになって�?ることに注�?
+```
+固有�?�クトルは?�?
+```{r}
+V <- eigen.out[[2]]
+matplot(V[c(1:n,1),1:10],type="l")
+matplot(V[c(1:n,1),11:20],type="l")
+
+```
+�?周に現れる固有状態�?�、正規直交関数であって、それ�?�フ�?�リエ変換の構�?�関数
+
+
+じゃあ、球面に対して同じことをすると、「球面調和関数」が現れそ�?で�?
+
+�?ってみ�?
+
+## �?面
+
+�?面を模して、それなりに細かい�?等点配置のメ�?シュグラフを作って、固有値�?解してみ�?
+
+```{r}
+library(devtools)
+install_github("ryamada22/Ronlyryamada")
+library(Ronlyryamada)
+library(igraph)
+```
+
+```{r, webgl=TRUE}
+sp.mesh <- my_sphere_tri_mesh(n.psi=40)
+xyz <- sp.mesh$xyz
+
+plot3d(sp.mesh$xyz)
+segments3d(sp.mesh$xyz[c(t(sp.mesh$edge)),])
+```
+
+```{r}
+g <- graph.edgelist(sp.mesh[[2]],directed=FALSE)
+
+ad <- get.adjacency(g)
+ad. <- as.matrix(ad)
+```
+
+固有値の�?�?は何か、意味のあるも�?�なのかもしれな�?けれど、�?�ロ�?トからすぐには思いつかな�?�?
+
+```{r}
+eigenout<- eigen(ad.)
+plot(eigenout[[1]])
+```
+
+```{r, webgl=TRUE}
+k <- 1
+L <- ceiling(sqrt(k))-1
+M <- 0
+ttl <- paste("l=",L," m=", M)
+
+new.xyz <- xyz * (eigenout[[2]][,k])/mean(eigenout[[2]][,k])
+
+plot3d(new.xyz,main=ttl,xlab="",ylab="",zlab="",axes=FALSE)
+
+segments3d(new.xyz[c(t(sp.mesh$edge)),])
+```
+```{r, webgl=TRUE}
+k <- k+1
+newL <- ceiling(sqrt(k))-1
+if(newL > L){
+  L <- newL
+  M <- -L
+}else{
+  M <- M + 1
+}
+ttl <- paste("l=",L," m=", M)
+#open3d()
+new.xyz <- xyz * (eigenout[[2]][,k])/mean(eigenout[[2]][,k])
+plot3d(new.xyz,main=ttl,xlab="",ylab="",zlab="",axes=FALSE)
+segments3d(new.xyz[c(t(sp.mesh$edge)),])
+```
+```{r, webgl=TRUE}
+k <- k+1
+newL <- ceiling(sqrt(k))-1
+if(newL > L){
+  L <- newL
+  M <- -L
+}else{
+  M <- M + 1
+}
+ttl <- paste("l=",L," m=", M)
+#open3d()
+new.xyz <- xyz * (eigenout[[2]][,k])/mean(eigenout[[2]][,k])
+plot3d(new.xyz,main=ttl,xlab="",ylab="",zlab="",axes=FALSE)
+segments3d(new.xyz[c(t(sp.mesh$edge)),])
+```
+```{r, webgl=TRUE}
+k <- k+1
+newL <- ceiling(sqrt(k))-1
+if(newL > L){
+  L <- newL
+  M <- -L
+}else{
+  M <- M + 1
+}
+ttl <- paste("l=",L," m=", M)
+#open3d()
+new.xyz <- xyz * (eigenout[[2]][,k])/mean(eigenout[[2]][,k])
+plot3d(new.xyz,main=ttl,xlab="",ylab="",zlab="",axes=FALSE)
+segments3d(new.xyz[c(t(sp.mesh$edge)),])
+```
+```{r, webgl=TRUE}
+k <- k+1
+newL <- ceiling(sqrt(k))-1
+if(newL > L){
+  L <- newL
+  M <- -L
+}else{
+  M <- M + 1
+}
+ttl <- paste("l=",L," m=", M)
+#open3d()
+new.xyz <- xyz * (eigenout[[2]][,k])/mean(eigenout[[2]][,k])
+plot3d(new.xyz,main=ttl,xlab="",ylab="",zlab="",axes=FALSE)
+segments3d(new.xyz[c(t(sp.mesh$edge)),])
+```
+```{r, webgl=TRUE}
+k <- k+1
+newL <- ceiling(sqrt(k))-1
+if(newL > L){
+  L <- newL
+  M <- -L
+}else{
+  M <- M + 1
+}
+ttl <- paste("l=",L," m=", M)
+#open3d()
+new.xyz <- xyz * (eigenout[[2]][,k])/mean(eigenout[[2]][,k])
+plot3d(new.xyz,main=ttl,xlab="",ylab="",zlab="",axes=FALSE)
+segments3d(new.xyz[c(t(sp.mesh$edge)),])
+```
+```{r, webgl=TRUE}
+k <- k+1
+newL <- ceiling(sqrt(k))-1
+if(newL > L){
+  L <- newL
+  M <- -L
+}else{
+  M <- M + 1
+}
+ttl <- paste("l=",L," m=", M)
+#open3d()
+new.xyz <- xyz * (eigenout[[2]][,k])/mean(eigenout[[2]][,k])
+plot3d(new.xyz,main=ttl,xlab="",ylab="",zlab="",axes=FALSE)
+segments3d(new.xyz[c(t(sp.mesh$edge)),])
+```
+```{r, webgl=TRUE}
+k <- k+1
+newL <- ceiling(sqrt(k))-1
+if(newL > L){
+  L <- newL
+  M <- -L
+}else{
+  M <- M + 1
+}
+ttl <- paste("l=",L," m=", M)
+#open3d()
+new.xyz <- xyz * (eigenout[[2]][,k])/mean(eigenout[[2]][,k])
+plot3d(new.xyz,main=ttl,xlab="",ylab="",zlab="",axes=FALSE)
+segments3d(new.xyz[c(t(sp.mesh$edge)),])
+```
+```{r, webgl=TRUE}
+k <- k+1
+newL <- ceiling(sqrt(k))-1
+if(newL > L){
+  L <- newL
+  M <- -L
+}else{
+  M <- M + 1
+}
+ttl <- paste("l=",L," m=", M)
+#open3d()
+new.xyz <- xyz * (eigenout[[2]][,k])/mean(eigenout[[2]][,k])
+plot3d(new.xyz,main=ttl,xlab="",ylab="",zlab="",axes=FALSE)
+segments3d(new.xyz[c(t(sp.mesh$edge)),])
+```
+```{r, webgl=TRUE}
+k <- k+1
+newL <- ceiling(sqrt(k))-1
+if(newL > L){
+  L <- newL
+  M <- -L
+}else{
+  M <- M + 1
+}
+ttl <- paste("l=",L," m=", M)
+#open3d()
+new.xyz <- xyz * (eigenout[[2]][,k])/mean(eigenout[[2]][,k])
+plot3d(new.xyz,main=ttl,xlab="",ylab="",zlab="",axes=FALSE)
+segments3d(new.xyz[c(t(sp.mesh$edge)),])
+```
+```{r, webgl=TRUE}
+k <- k+1
+newL <- ceiling(sqrt(k))-1
+if(newL > L){
+  L <- newL
+  M <- -L
+}else{
+  M <- M + 1
+}
+ttl <- paste("l=",L," m=", M)
+#open3d()
+new.xyz <- xyz * (eigenout[[2]][,k])/mean(eigenout[[2]][,k])
+plot3d(new.xyz,main=ttl,xlab="",ylab="",zlab="",axes=FALSE)
+segments3d(new.xyz[c(t(sp.mesh$edge)),])
+```
+```{r, webgl=TRUE}
+k <- k+1
+newL <- ceiling(sqrt(k))-1
+if(newL > L){
+  L <- newL
+  M <- -L
+}else{
+  M <- M + 1
+}
+ttl <- paste("l=",L," m=", M)
+#open3d()
+new.xyz <- xyz * (eigenout[[2]][,k])/mean(eigenout[[2]][,k])
+plot3d(new.xyz,main=ttl,xlab="",ylab="",zlab="",axes=FALSE)
+segments3d(new.xyz[c(t(sp.mesh$edge)),])
+```
+```{r, webgl=TRUE}
+k <- k+1
+newL <- ceiling(sqrt(k))-1
+if(newL > L){
+  L <- newL
+  M <- -L
+}else{
+  M <- M + 1
+}
+ttl <- paste("l=",L," m=", M)
+#open3d()
+new.xyz <- xyz * (eigenout[[2]][,k])/mean(eigenout[[2]][,k])
+plot3d(new.xyz,main=ttl,xlab="",ylab="",zlab="",axes=FALSE)
+segments3d(new.xyz[c(t(sp.mesh$edge)),])
+``````{r, webgl=TRUE}
+k <- k+1
+newL <- ceiling(sqrt(k))-1
+if(newL > L){
+  L <- newL
+  M <- -L
+}else{
+  M <- M + 1
+}
+ttl <- paste("l=",L," m=", M)
+#open3d()
+new.xyz <- xyz * (eigenout[[2]][,k])/mean(eigenout[[2]][,k])
+plot3d(new.xyz,main=ttl,xlab="",ylab="",zlab="",axes=FALSE)
+segments3d(new.xyz[c(t(sp.mesh$edge)),])
+```
+```{r, webgl=TRUE}
+k <- k+1
+newL <- ceiling(sqrt(k))-1
+if(newL > L){
+  L <- newL
+  M <- -L
+}else{
+  M <- M + 1
+}
+ttl <- paste("l=",L," m=", M)
+#open3d()
+new.xyz <- xyz * (eigenout[[2]][,k])/mean(eigenout[[2]][,k])
+plot3d(new.xyz,main=ttl,xlab="",ylab="",zlab="",axes=FALSE)
+segments3d(new.xyz[c(t(sp.mesh$edge)),])
+```
+```{r, webgl=TRUE}
+k <- k+1
+newL <- ceiling(sqrt(k))-1
+if(newL > L){
+  L <- newL
+  M <- -L
+}else{
+  M <- M + 1
+}
+ttl <- paste("l=",L," m=", M)
+#open3d()
+new.xyz <- xyz * (eigenout[[2]][,k])/mean(eigenout[[2]][,k])
+plot3d(new.xyz,main=ttl,xlab="",ylab="",zlab="",axes=FALSE)
+segments3d(new.xyz[c(t(sp.mesh$edge)),])
+```
+```{r, webgl=TRUE}
+k <- k+1
+newL <- ceiling(sqrt(k))-1
+if(newL > L){
+  L <- newL
+  M <- -L
+}else{
+  M <- M + 1
+}
+ttl <- paste("l=",L," m=", M)
+#open3d()
+new.xyz <- xyz * (eigenout[[2]][,k])/mean(eigenout[[2]][,k])
+plot3d(new.xyz,main=ttl,xlab="",ylab="",zlab="",axes=FALSE)
+segments3d(new.xyz[c(t(sp.mesh$edge)),])
+```
+```{r, webgl=TRUE}
+k <- k+1
+newL <- ceiling(sqrt(k))-1
+if(newL > L){
+  L <- newL
+  M <- -L
+}else{
+  M <- M + 1
+}
+ttl <- paste("l=",L," m=", M)
+#open3d()
+new.xyz <- xyz * (eigenout[[2]][,k])/mean(eigenout[[2]][,k])
+plot3d(new.xyz,main=ttl,xlab="",ylab="",zlab="",axes=FALSE)
+segments3d(new.xyz[c(t(sp.mesh$edge)),])
+```
