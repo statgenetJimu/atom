@@ -5,6 +5,8 @@ output: html_document
 
 元ネタは[Spectral methods for analyzing and visualizing networks: an introduction](http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.84.3718)
 
+元ネタPDFには、少し記載に誤りがあったりするので注意すること
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
@@ -223,7 +225,7 @@ $A^2$ は２歩で行きつける歩き方に関する情報である。
 
 ```{r}
 sum(diag(A%*%A)) # エッジの本数の２倍
-sum(A%*%A)
+sum(A)
 ```
 
 以下の関係を使うと
@@ -506,3 +508,370 @@ $$
 
 * $N$自体は対称行列ではない。したがって隣接行列・ラプラシアンの際に対称性を利用した計算を転用できない
 * しかしながら、固有値のみを得るためであれば、$N=D^{-1}A$の固有値と$D^{-1/2}AD^{-1/2}$の固有値が同じであることから、対称である$D^{-1/2}AD^{-1/2}$を代用として用いるという方法もある。$D^{-1/2}e_i = n_i$というような、対応する固有ベクトルの計算法もある
+
+RでNの確認をしておく
+
+```{r}
+n <- 500
+A <- my.rAdjacency(n,prob=c(0.96,0.04))
+D <- diag(apply(A,1,sum))
+D.half <- diag(sqrt(apply(A,1,sum)))
+N <- solve(D) %*% A
+# Nは非対称
+range(N-t(N))
+```
+```{r}
+eigen.out <- eigen(N)
+nu <- eigen.out[[1]]
+nu.ev <- eigen.out[[2]]
+plot(nu)
+```
+
+$D^{-1/2}AD^{1/2}$の固有値と一致することを確認する
+```{r}
+N. <- solve(D.half) %*% A %*% solve(D.half)
+eigen.out. <- eigen(N.)
+plot(sort(nu),sort(eigen.out.[[1]]))
+```
+
+固有値の大小順序が異なるので、そろえるために、順序情報を取り出しておく
+```{r}
+ord.nu <- order(nu)
+ord.nu. <- order(eigen.out.[[1]])
+```
+
+固有値の値の順序に関して、$D^{-1/2}AD^{-1/2}$から求めた固有ベクトルに$D^{-1/2}$を作用させたものを求める
+
+```{r}
+E <- eigen.out.[[2]][,ord.nu.]
+e.vectors <- solve(D.half) %*% E
+
+```
+このようにして算出したベクトルは対応するNの固有ベクトルとなっている（Nを固有値分解して求めた固有ベクトルの定数倍になっている）
+
+```{r}
+range(N %*% e.vectors - t(t(e.vectors) * nu[ord.nu])) # Nx = nu x をすべてのx \in e.vectorsが満たすので0になる
+```
+
+### Normal行列スペクトルの解釈
+
+* 特性関数の解釈は特別な場合を除いて簡単ではないという
+* 固有値が保有している情報は、サイクルと木の両方になる
+
+### 隣接行列、ラプラシアン、Normal行列のスペクトルの相互の関係など
+
+隣接行列は、ノードの次数についての補正をしていないので、「ノードの次数がそろっていたらこれこれ」を満足し、そうでないときは、満足しない、という特徴と関連づく。
+
+それに対して、ラプラシアンとNormal行列は隣接行列にノード次数の補正を追加した形をしており、ノード次数が一定でないグラフにもこれこれが言える、というように一般化したスペクトルになっている。
+
+* ラプラシアンはラプラシアン。平衡状態。あるエネルギー状態での波の様子などを表す。
+* Normal行列はラプラシアンにノードに次数の重みを付与したものなっている
+* Normal 行列はグラフ上の単純なランダムウォークの推移行列
+* $N^2$は隣接行列を分割表と見た時の$\chi^2$行列ともみなせる???
+
+## Normal行列とランダムウォーク
+
+$v^T N = new.v^T, N^T v = ew.v$で$N$が確率推移行列であるということは、$N$の行和が1であって、$N$の全成分が0以上だということ
+
+```{r}
+range(apply(N,1,sum)) # 1
+range(N) # >=0 
+```
+
+ランダムウォークをさせてみる。収束する様子が見える
+
+```{r}
+n.iter <- 100
+X <- matrix(0,n.iter,length(N[,1]))
+X[1,] <- runif(length(X[1,]))
+X[1,] <- X[1,]/sum(X[1,])
+for(i in 2:n.iter){
+  X[i,] <- t(N) %*% X[i-1,]
+}
+matplot(X,type="l")
+```
+
+収束先は、ノードの次数に比例した割合になる。
+その値は$N^T \mathbf{1}$のように、全ノードに同じ重みを置いた状態から１歩移動した状態と比例する。
+
+行きつ戻りつの離散性があるので、厳密には定常ではなく、わずかな振動を伴った状態に落ち着く
+```{r}
+# 均一状態から１歩
+p0 <- t(N) %*% rep(1,length(N[,1]))
+# 多数歩後と比較
+plot((X[n.iter,])/p0)
+# ノード次数と比較
+plot(p0,apply(A,1,sum))
+```
+
+
+この定常状態は第一固有値と関係している。
+
+第二固有値はいかに早くその定常状態に向かって変化するかを表す。
+第二固有値が小さいとすぐに収束する。
+それは
+ランダムウォークの迷路が複雑なほど、すぐにたどってきた経路がわからなくなることと関係する。
+逆に第二固有値が１に近いとなかなか収束しないが、それは、ラプラシアンの非0の固有値の中に0に近いものが存在することと対応しており、非連結ではないが、非連結に近い状態のグラフであることに対応しており、その場合はには、なかなか収束しない
+
+### $N^2$はAの$\chi^2$行列と関係する
+
+```{r}
+rowsumA <- apply(A,1,sum)
+colsumA <- apply(A,2,sum)
+expected.mat <- matrix(rowsumA,ncol=1) %*% matrix(colsumA,nrow=1)/sum(A)
+# ノード次数を使って以下のようにも計算できる
+v.deg <- apply(A,1,sum)
+expected.mat2 <- matrix(v.deg,ncol=1) %*% matrix(v.deg,nrow=1)/sum(v.deg)
+range(expected.mat - expected.mat2)
+```
+
+$\chi^2$行列であるとは、期待値と実値とから算出されるものなので
+
+```{r}
+chimat <- (A-expected.mat)^2/expected.mat
+sum(chimat)
+```
+
+実際、Aのうち、非0の成分の項は
+$$
+(1-expected)^2/expected=1/expected - 2 + expected
+$$
+となり、値が0の成分の項は
+$$
+(0-expected)^2/expected=expected
+$$
+となる。
+
+$N$に関係する対称行列$N. = D^{-1/2}AD^{-1/2}$のうち、Aの成分が非0の部分について、次のような関係で、Aから作った$\chi^2$値行列と比例関係にある。
+
+補正のために次数の総和を掛けたり、1を引いたり、Aの0成分に相当する$\chi^2$寄与分を考慮したりした結果が比例関係である。
+
+このような関係を使うことで、Aを分割表とみたときの$\chi^2$値(ノード次数の偏り)がNormal行列の固有値と関係づく
+
+
+```{r}
+N. <- solve(D.half) %*% A %*% solve(D.half)
+zero.elem.term <- chimat[which(A==0)]
+yyy <- sum(zero.elem.term)/sum(A)
+plot(N.^2 * sum(A)-1-yyy,chimat)
+abline(0,1)
+```
+
+## グラフの分解
+
+### 隣接行列の場合
+
+#### クロネッカー積
+
+２つのグラフがあったとき、その隣接行列のクロネッカー積も隣接行列になる
+
+小さな２つのグラフでやってみる
+```{r}
+A1 <- rbind(c(0,1,1),c(1,0,1),c(1,1,0))
+A2 <- rbind(c(0,1,0,0),c(1,0,1,0),c(0,1,0,1),c(0,0,1,0))
+g1 <- graph.adjacency(A1)
+g2 <- graph.adjacency(A2)
+par(mfcol=c(1,2))
+plot(g1)
+plot(g2)
+par(mfcol=c(1,2))
+```
+
+隣接行列のクロネッカー積 $A1 \otimes A2$ を計算する
+```{r}
+A12 <- A1 %x% A2
+A1
+A2
+A12
+```
+
+```{r}
+g12 <- graph.adjacency(A12)
+plot(g12,shape="circle")
+```
+まずは、g1,g2,g12の固有値分解をしておく
+
+```{r}
+eigen.out1 <- eigen(A1)
+eigen.out2 <- eigen(A2)
+eigen.out12 <- eigen(A12)
+```
+
+A12の固有値・固有ベクトルの作る行列がA1,A2のそれの総当たりペアの積関係になっている
+
+```{r}
+p1 <- 1:length(eigen.out1[[1]])
+p2 <- 1:length(eigen.out2[[1]])
+p12 <- expand.grid(p1,p2)
+
+evals  <- rep(0,length(p12[,1]))
+evecs <- matrix(0,length(p12[,1]),length(p12[,1]))
+for(i in 1:length(p12[,1])){
+  tmp1 <- eigen.out1[[1]][p12[i,1]]
+  tmp2 <- eigen.out2[[1]][p12[i,2]]
+  evals[i] <- tmp1 * tmp2 # 固有値ペアの積
+  tmp1 <- eigen.out1[[2]][,p12[i,1]]
+  tmp2 <- eigen.out2[[2]][,p12[i,2]]
+  evecs[,i] <- tmp1 %x% tmp2
+}
+# 固有値は確かに同じで
+ord12 <- order(evals,decreasing=TRUE)
+plot(eigen.out12[[1]],evals[ord12])
+abline(0,1)
+# 固有ベクトルは確かに Mx - lambda x =0を満たす
+for(i in 1:length(p12[,1])){
+  print(range(A12 %*% evecs[,i] - evals[i] * evecs[,i]))
+}
+
+```
+
+
+#### カルテシアン的な和
+
+$A1 \oplus A2$ というのもある
+
+クロネッカー積を使って次のように計算できる
+$A1 \oplus A2 = A1 \otimes I_{|A2|} + A2 \otimes I_{|A1|}$ という関係にある
+
+単位行列を掛ける順番に注意すること。A1には右から、A2には左から掛ける
+
+```{r}
+B12 <- A1 %x% diag(rep(1,length(A2[,1]))) + diag(rep(1,length(A1[,1])))  %x% A2 
+plot(graph.adjacency(B12))
+eigen.outB12 <- eigen(B12)
+```
+
+この場合は、固有ベクトルはクロネッカー積の場合と同じで、固有値は和となる
+
+```{r}
+evals  <- rep(0,length(p12[,1]))
+evecs <- matrix(0,length(p12[,1]),length(p12[,1]))
+for(i in 1:length(p12[,1])){
+  tmp1 <- eigen.out1[[1]][p12[i,1]]
+  tmp2 <- eigen.out2[[1]][p12[i,2]]
+  evals[i] <- tmp1 + tmp2 # 固有値ペアの積でなく、和
+  tmp1 <- eigen.out1[[2]][,p12[i,1]]
+  tmp2 <- eigen.out2[[2]][,p12[i,2]]
+  evecs[,i] <- tmp1 %x% tmp2
+}
+# 固有値は確かに同じで
+ord12 <- order(evals,decreasing=TRUE)
+plot(eigen.outB12[[1]],evals[ord12])
+abline(0,1)
+# 固有ベクトルは確かに Mx - lambda x =0を満たす
+for(i in 1:length(p12[,1])){
+  print(range(B12 %*% evecs[,i] - evals[i] * evecs[,i]))
+}
+```
+
+### ラプラシアンの場合
+
+ラプラシアンは行列のカルテシアン和の場合には、隣接行列と同じルールが当てはまる
+
+$A1 \oplus A2 = A12$ に対するラプラシアンと、$A1$に対するラプラシアン $L1$と$A2$に対するラプラシアン$L2$とのカルテシアン和 $L1 \oplus L2$が同じであることにも注意
+
+クロネッカー積はルールが当てはまらない
+```{r}
+D1 <- diag(apply(A1,1,sum))
+L1 <- D1 - A1
+D2 <- diag(apply(A2,1,sum))
+L2 <- D2 - A2
+D12 <- diag(apply(B12,1,sum))
+L12. <- D12 - B12
+L12 <- L1 %x% diag(rep(1,length(L2[,1]))) + diag(rep(1,length(L1[,1])))  %x% L2 
+range(L12. - L12)
+
+eigen.out1 <- eigen(L1)
+eigen.out2 <- eigen(L2)
+eigen.out12 <- eigen(L12)
+```
+
+```{r}
+evals  <- rep(0,length(p12[,1]))
+evecs <- matrix(0,length(p12[,1]),length(p12[,1]))
+for(i in 1:length(p12[,1])){
+  tmp1 <- eigen.out1[[1]][p12[i,1]]
+  tmp2 <- eigen.out2[[1]][p12[i,2]]
+  evals[i] <- tmp1 + tmp2 # 固有値ペアの積でなく、和
+  tmp1 <- eigen.out1[[2]][,p12[i,1]]
+  tmp2 <- eigen.out2[[2]][,p12[i,2]]
+  evecs[,i] <- tmp1 %x% tmp2
+}
+# 固有値は確かに同じで
+ord12 <- order(evals,decreasing=TRUE)
+plot(eigen.out12[[1]],evals[ord12])
+abline(0,1)
+# 固有ベクトルは確かに Mx - lambda x =0を満たす
+for(i in 1:length(p12[,1])){
+  print(range(L12 %*% evecs[,i] - evals[i] * evecs[,i]))
+}
+```
+
+ラプラシアンの固有値には0があるので、重複固有値がある
+```{r}
+plot(eigen.out12[[1]])
+```
+また、固有ベクトルも短いベクトルのタンデムな連結のものがある
+
+```{r}
+eigen.out12[[2]]
+image(eigen.out12[[2]])
+```
+
+### Normal 行列の場合
+
+今度は逆に、カルテシアン和はルールに従わないが、クロネッカー積$N1 \otimes N2$は従う
+
+$A1 \oplus A2 = A12$ に対するNormal行列と、$A1$に対するNormal行列$N1$と$A2$に対するNormal行列$N2$とのクロネッカー積 $N1 \otimes N2$が同じであることにも注意
+```{r}
+N1 <- solve(D1) %*% A1
+N2 <- solve(D2) %*% A2
+D12 <- diag(apply(A12,1,sum))
+N12 <- N1 %x% N2
+N12. <- solve(D12) %*% A12
+range(N12- N12.)
+
+eigen.out1 <- eigen(N1)
+eigen.out2 <- eigen(N2)
+eigen.out12 <- eigen(N12)
+
+```
+
+
+```{r}
+p1 <- 1:length(eigen.out1[[1]])
+p2 <- 1:length(eigen.out2[[1]])
+p12 <- expand.grid(p1,p2)
+
+evals  <- rep(0,length(p12[,1]))
+evecs <- matrix(0,length(p12[,1]),length(p12[,1]))
+for(i in 1:length(p12[,1])){
+  tmp1 <- eigen.out1[[1]][p12[i,1]]
+  tmp2 <- eigen.out2[[1]][p12[i,2]]
+  evals[i] <- tmp1 * tmp2 # 固有値ペアの積
+  tmp1 <- eigen.out1[[2]][,p12[i,1]]
+  tmp2 <- eigen.out2[[2]][,p12[i,2]]
+  evecs[,i] <- tmp1 %x% tmp2
+}
+# 固有値は確かに同じで
+ord12 <- order(evals,decreasing=TRUE)
+ord12. <- order(eigen.out12[[1]],decreasing=TRUE)
+plot(eigen.out12[[1]][ord12.],evals[ord12])
+abline(0,1)
+# 固有ベクトルは確かに Mx - lambda x =0を満たす
+for(i in 1:length(p12[,1])){
+  print(range(N12 %*% evecs[,i] - evals[i] * evecs[,i]))
+}
+```
+
+Normal行列の固有値には必ず１のものがあるので、クロネッカー積の固有値にも重複が見られる
+```{r}
+plot(sort(eigen.out12[[1]]))
+```
+
+固有ベクトルもタンデムリピートなどからなる
+
+```{r}
+eigen.out12[[2]]
+image(eigen.out12[[2]])
+```
