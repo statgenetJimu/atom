@@ -16,8 +16,11 @@ BEGIN_RCPP
 END_RCPP
 }
 
+RcppExport SEXP _rysample_timesTwo(SEXP);
+
 static const R_CallMethodDef CallEntries[] = {
     {"_rysample_rcpp_hello_world", (DL_FUNC) &_rysample_rcpp_hello_world, 0},
+    {"_rysample_timesTwo",         (DL_FUNC) &_rysample_timesTwo,         1},
     {NULL, NULL, 0}
 };
 
