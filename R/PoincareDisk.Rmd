@@ -1,0 +1,750 @@
+---
+title: "ポアンカレ　ディスク"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(knitr)
+library(rgl)
+knit_hooks$set(webgl = hook_webgl)
+```
+
+
+## 双曲面模型
+
+この節は、[Hyperboloid model(Wikipedia記事)](https://en.wikipedia.org/wiki/Hyperboloid_model) 
+に従って書いてある。
+
+双曲面模型とは、n+1次元空間にある、ある(超)双曲面上の点を、n次元空間中の単位球体(円板)にあるルールで射影するもの。
+
+n+1次元空間は、ミンコフスキー空間になっており、内積の定義に負の固有値が入っているため、直線・平行線・距離の概念がユークリッド空間のそれとは異なっている。
+
+ミンコフスキー空間のm+1次元(超)平面は、n次元平面に射影されてm次元(超)平面になるが、それは、n+1次元空間の超平面が、双曲面とよぎった点の写像としてあらわされる。
+
+n=2の場合は、ミンコフスキー空間は３次元、射影は２次元円板、ミンコフスキー空間の平面が、ミンコフスキー空間の双曲面とよぎって、３次元空間上の曲線となり、その写像が、２次元円板上の曲線となる。
+
+
+$$
+x^2 + y^2 - z^2 \le 0; z \ge 0
+$$
+の領域を考える。
+
+この空間に
+$$
+x^2 + y^2 - z^2 = -1
+$$
+という双曲面がある。
+
+
+### 3次元ミンコフスキー空間座標の単位円板への射影
+
+その領域の点(x,y,z)を、$z=0$平面上の半径１の円板$x^2 + y^2 \le 1$上に射影することとする。
+
+点(0,0,-1)と(x,y,z)とを通る直線が、$z=0$をよぎる点の座標(x',y',0)は
+以下の式で与えられる。
+
+$$
+x' = \frac{x}{z+1}\\
+y' = \frac{y}{z+1}
+$$
+
+逆写像は、次の式で与えられる。
+
+$$
+x = \frac{2x'}{1-x'^2-y'^2}\\
+y = \frac{2y'}{1-x'^2-y'^2}\\
+z = \frac{1+x'^2+y'^2}{1-x'^2-y'^2}
+$$
+```{r}
+my.pdisk.coords <- function(x){
+  x. <- x[1]/(x[3]+1)
+  y. <- x[2]/(x[3]+1)
+  return(c(x.,y.))
+}
+# 円板上の点の座標をx^2 + y^2 - z^2 = -1 という双曲面上に逆写像する
+my.pdisk.coords.inv <- function(x){
+  z <- (1+sum(x^2))/(1-sum(x^2))
+  tmp <- 2*x/(1-sum(x^2))
+  return(c(tmp,z))
+}
+#my.pdisk.coords.inv_bk <- function(x){
+#  tmp <- x/sqrt(1-sum(x^2))
+#  z <- sqrt(sum(tmp^2)+1)
+#  return(c(tmp,z))
+#}
+# x^2+y^2-z^2=0という円錐に逆写像
+#my.pdisk.coords.inv.cone <- function(x){
+#  k <- (-1+sqrt(sum(x^2)))/(sum(x^2)-1)
+#  
+#  return(k * c(x,1))
+#}
+
+```
+
+### 双曲面上の点の射影
+
+```{r}
+n <- 10000
+x <- runif(n,min=-10,max=10)
+y <- runif(n,min=-10,max=10)
+z <- sqrt(x^2 + y^2 + 1)
+
+xyz <- cbind(x,y,z)
+```
+
+```{r,webgl=TRUE}
+plot3d(xyz)
+```
+```{r}
+pd.crd <- apply(xyz,1,my.pdisk.coords)
+plot(t(pd.crd),pch=20,cex=0.1,asp=TRUE)
+```
+
+双曲面の外側にいくほど、円板上で点が密になる。
+
+円板上では、短い距離にみえても、ミンコフスキー空間上では遠い距離に相当するからである。
+
+### ミンコフスキー内積と点間の双曲幾何的距離
+
+
+ベクトルの長さのようなもの(二次形式)が以下のように与えられているとき、
+$$
+Q(x_1,x_2,...) = -(x_1^2+...+x_{n}^2) + x_{n+1}^2
+$$
+
+双曲面は$Q(x_1,...) = 1$上の点の集まりのことである。
+
+この双曲面上の２点に相当するベクトル$u,v$があったとき、その内積は
+
+$$
+<u,v> = \frac{Q(u+v) - (Q(u)+Q(v))}{2} = -(u_1v_2 + ... + u_n v_n) + u_{n+1}v_{n+1}
+$$
+で与えられる。
+
+この２点の双曲幾何的距離は
+$$
+d(u,v) = arcosh(<u,v>)
+$$
+
+### 距離を視覚化
+
+単位円板上に点を取り、そのうちのある１点からの双曲幾何的距離を視覚化してみる。
+
+```{r}
+n <- 10000
+x. <- runif(n,min=-1,max=1)
+y. <- runif(n,min=-1,max=1)
+r2 <- x.^2 + y.^2
+s <- which(r2 < 1)
+x. <- x.[s]
+y. <- y.[s]
+plot(x.,y.,pch=20,cex=0.1,asp=TRUE)
+```
+
+```{r,webgl=TRUE}
+hyp.cds <- t(apply(cbind(x.,y.),1,my.pdisk.coords.inv))
+plot3d(hyp.cds)
+```
+
+```{r}
+my.hyp.dist <- function(u,v){
+  acosh(- sum(u*v) + 2*u[length(u)]*v[length(v)])
+}
+d <- apply(hyp.cds,1,my.hyp.dist,hyp.cds[1,])
+col <- ceiling(d/max(d)*10)
+plot(x.,y.,pch=20,cex=1,asp=TRUE,col=col)
+```
+
+### 直線・測地戦
+
+双曲幾何的直線は、双曲面と３次元平面との交わり。
+
+$$
+<u,u> = -1\\
+<v,v> = 1\\
+<u,v> = 0
+$$
+
+という２つのベクトルが、パラメタ$w$を用いて
+$$
+u \cosh{w} + v \sinh{w}
+$$
+で表される点がそうなるのだと言う。
+
+$u = (u_1,u_2,u_3),v = (v_1,v_2,v_3)$のうち、$u_1,u_2,v_1$を指定し残り３変数を計算する関数を以下のように作る。
+
+上記の制約を満足する$v_2,v_3$の取り方は４通りあるが、そのうち、双曲面上の曲線となるのは、以下に示すように２通り。
+
+点$u$は、双曲面上の点、点$v$はベクトル$uv$が双曲面の接面となるような点
+
+```{r}
+my.hyp.line.vec <- function(u1,u2,v1){
+  u3 <- sqrt(u1^2+u2^2+1)
+  tmp <- sqrt(u1^2*v1^2*u2^2 + (u1^2+v1^2+1)*(u1^2+u2^2+1))
+  v2a <- (u1*v1*u2 + tmp )/(u1^2+v1^2+1)
+  v2b <- (u1*v1*u2 - tmp )/(u1^2+v1^2+1)
+  u <- c(u1,u2,u3)
+  v3a <- sqrt(v1^2+v2a^2-1)
+  v3b <- sqrt(v1^2+v2b^2-1)
+  va <- c(v1,v2a,v3a)
+  va. <- c(v1,v2a,-v3a)
+  vb <- c(v1,v2b,v3b)
+  vb. <- c(v1,v2b,-v3b)
+  return(list(u=u,va=va,va.=va.,vb=vb,vb.=vb.))
+}
+```
+
+```{r}
+u1 <- 0.5
+u2 <- 0.7
+v1 <- -0.3
+uv <- my.hyp.line.vec(u1,u2,v1)
+uv
+```
+
+```{r,webgl=TRUE}
+w <- seq(from=-2,to=2,length=1000)
+coshw <- cosh(w)
+sinhw <- sinh(w)
+cshw <- rbind(coshw,sinhw)
+matplot(t(cshw),type="l")
+u <- uv$u
+va <- uv$va 
+va.  <- uv$va.
+vb <- uv$vb 
+vb. <- uv$vb. 
+
+lina <- cbind(u,va) %*% cshw
+lina. <- cbind(u,va.) %*% cshw
+
+linb<- cbind(u,vb) %*% cshw
+linb. <- cbind(u,vb.) %*% cshw
+```
+
+
+
+```{r,webgl=TRUE}
+n <- 10000
+x <- runif(n,min=-2,max=2)
+y <- runif(n,min=-2,max=2)
+z <- sqrt(x^2 + y^2 + 1)
+
+xyz <- cbind(x,y,z*sample(c(-1,1),n,replace=TRUE))
+
+plot3d(xyz)
+spheres3d(t(lina ),radius=0.05,col=2)
+spheres3d(t(lina. ),radius=0.05,col=3) # 双曲面に乗らない
+spheres3d(t(linb ),radius=0.05,col=4) # 双曲面に乗らない
+spheres3d(t(linb. ),radius=0.05,col=5) #
+spheres3d(u,radius=0.1,col=6)
+spheres3d(va,radius=0.1,col=2)
+spheres3d(va.,radius=0.1,col=3)
+spheres3d(vb,radius=0.1,col=4)
+spheres3d(vb.,radius=0.1,col=5)
+segments3d(rbind(rep(0,3),u))
+
+segments3d(rbind(rep(0,3),va))
+segments3d(rbind(rep(0,3),va. ))
+
+segments3d(rbind(rep(0,3),vb ))
+segments3d(rbind(rep(0,3),vb. ))
+
+```
+
+この直線を単位円板に射影する。
+
+```{r}
+n <- 10000
+x. <- runif(n,min=-1,max=1)
+y. <- runif(n,min=-1,max=1)
+r2 <- x.^2 + y.^2
+s <- which(r2 < 1)
+x. <- x.[s]
+y. <- y.[s]
+plot(x.,y.,pch=20,cex=0.01,asp=TRUE)
+
+pd.crd.a  <- apply(t(lina ),1,my.pdisk.coords)
+points(t(pd.crd.a),pch=20,cex=1,col=2)
+pd.crd.b.  <- apply(t(linb. ),1,my.pdisk.coords)
+points(t(pd.crd.b.),pch=20,cex=1,col=5)
+```
+
+## ポアンカレ・ディスク
+
+この節は[Poincare Disk model (Wikipedia記事)](https://en.wikipedia.org/wiki/Poincar%C3%A9_disk_model)
+に従てって書いている。
+
+### 直線
+
+単位円板の辺縁の点と直交するすべてのユークリッド幾何の意味での円周は、双曲幾何での直線に相当する。
+
+```{r}
+t <- seq(from=0,to=1,length=100)*2*pi
+plot(cos(t),sin(t),type="l",asp=1)
+```
+
+単位円板のある点$(\cos{\theta},\sin{\theta})$を通り、単位円周と直交する円の中心は、
+その点を通る、単位円の接線上の点である。
+
+接線の方向ベクトルは$(-\sin{\theta},\cos{\theta})$であるから、
+
+そのような円の座標は
+$$
+ctr_x = \cos{\theta} - r \sin{\theta}\\
+ctr_y = \sin{\theta} + r \cos{\theta}
+$$
+であり、その半径は、$r$である。
+
+```{r}
+# 円周上の点座標ptと直交円の半径rを与え
+# 中心を返す関数
+my.orth.circle1 <- function(pt,r){
+  ctr_x <- pt[1] - r * pt[2]
+  ctr_y <- pt[2] + r * pt[1]
+  return(c(ctr_x,ctr_y))
+}
+```
+```{r}
+plot(cos(t),sin(t),type="l",asp=1)
+
+n.line <- 10
+
+for(i in 1:n.line){
+  theta <- runif(1) * 2 * pi
+  r <- 10^runif(1)
+  ctr <- my.orth.circle1(c(cos(theta),sin(theta)),r)
+  
+  pnts <- cbind(r*cos(t)+ctr[1],r*sin(t)+ctr[2])
+  points(pnts,type="l",col=i+1)
+}
+```
+
+#### Inversion 反転を使う方法
+
+平面上の任意の２点を通る円で、単位円と直交するものを求める。
+
+ある点がその円周上にあるとき、その点を単位円に関して反転した点も通ることを利用する。
+
+```{r}
+my.inversion <- function(x){
+  r <- sqrt(sum(x^2))
+  R <- 1/r
+  return(x/r*R)
+}
+# P, Qは任意の２点の座標
+my.orth.circle2 <- function(P,Q){
+  P. <- my.inversion(P)
+  Q. <- my.inversion(Q)
+  M <- (P + P.)/2
+  N <- (Q + Q.)/2
+  
+  k. <- (M[1]^2+M[2]^2-M[1]*N[1]-M[2]*N[2])/(M[1]*N[2]-M[2]*N[1])
+  ctr_x <- N[1] + k.*N[2]
+  ctr_y <- N[2] - k.*N[1]
+  r <- sqrt((ctr_x-P[1])^2+(ctr_y-P[2])^2)
+  
+  return(list(ctr=c(ctr_x,ctr_y),r=r,P=P,Q=Q,P.=P.,Q.=Q.))
+}
+```
+
+
+```{r}
+plot(cos(t),sin(t),type="l",asp=1,xlim=c(-5,5),ylim=c(-5,5))
+
+n.line <- 4
+
+for(i in 1:n.line){
+  P <- rnorm(2) * 1
+  Q <- rnorm(2) *1
+  #P <- c(2,0)
+  #Q <- c(0,2)
+  tmp <- my.orth.circle2(P,Q)
+  r <- tmp$r
+  ctr <- tmp$ctr
+  pnts <- cbind(r*cos(t)+ctr[1],r*sin(t)+ctr[2])
+  points(pnts,type="l",col=i+1)
+  points(P[1],P[2],col=i+1,pch=20,cex=2)
+  points(Q[1],Q[2],col=i+1,pch=20,cex=2)
+  points(tmp$P.[1],tmp$P.[2],col=i+1,pch=20,cex=2)
+  points(tmp$Q.[1],tmp$Q.[2],col=i+1,pch=20,cex=2)
+}
+```
+
+### 距離
+
+上記で描いた、ポアンカレ・ディスク上の曲線が測地線。
+測地戦をたどって「距離」を測る。
+
+円板内の２点を通る測地線を延ばして円周との交点を取る。
+
+順番に、A,P,Q,B(A,Bは円周上の点、P,Qは円板内の点)とする。
+
+双曲幾何的なPQ距離$d_{hyp}(P,Q)$は、ユークリッド的距離$|XY|$を使って、以下のように定まる。
+
+$$
+d_{hyp}(P,Q) = \log{\frac{|AQ||PB|}{|AP||QB|} }
+$$
+
+Pが円周上に近づくと、AP間のユークリッド距離が0に近づくので、上の式の分母が0に近づき、分数自体は無限大に向かう。
+
+逆に、PとQとが近づくと、分数が1に近づくので、双曲幾何的距離も0に近づく。
+
+別法もある。
+ディスクの半径をrとし(今はr=1と固定して考えている）、ポアンカレ・ディスクの中心点をOとしたときに以下で得られる。
+$$
+d_{hyp}(P,Q) = arcosh(1 + \frac{2 |PQ|^2r^2}{(r^2-|OP|^2)(r^2-|OQ|^2)})\\
+=arcosh(1+\frac{|PQ|^2}{(1-|OP|^2)(1-|OQ|^2)})
+$$
+
+２つの方法で計算して結果を比較してみる。
+```{r}
+my.hyp.dist1 <- function(P,Q){
+  out <- my.orth.circle2(P,Q)
+  r <- out$r
+  d.ctr <- sqrt(sum(out$ctr^2)) # 原点から測地線円の中心までの距離
+  theta <- acos(1/d.ctr)
+  phi <- Arg(out$ctr[1] + 1i * out$ctr[2]) # 測地線円方向の角度
+  AB1 <- c(cos(phi-theta),sin(phi-theta))
+  AB2 <- c(cos(phi+theta),sin(phi+theta))
+
+  AQ <- sqrt(sum((AB1-Q)^2))
+  PB <- sqrt(sum((P-AB2)^2))
+  AP <- sqrt(sum((AB1-P)^2))
+  QB <- sqrt(sum((Q-AB2)^2))
+  # A,BをAB1,AB2のどちらにするか、２通りで距離を算出する
+  dhyp1 <- log(AQ*PB/(AP*QB))
+  dhyp2 <- log(QB*AP/(PB*AQ))
+  
+  return(list(dhyp1=dhyp1,dhyp2=dhyp2,A=AB1,B=AB2,circle=out))
+}
+my.hyp.dist2 <- function(P,Q){
+  r <- 1
+  PQ <- sqrt(sum((P-Q)^2))
+  OP <- sqrt(sum((P)^2))
+  OQ <- sqrt(sum((Q)^2))
+  
+  dhyp <- acosh(1+2*PQ^2*r^2/((r^2-OP^2)*(r^2-OQ^2)))
+  return(dhyp)
+}
+```
+
+```{r}
+r4 <- runif(4)
+#r4[3] <- r4[1]+rnorm(1)*0.0001
+#r4[4] <- r4[2] + rnorm(1)*0.0001
+P <- r4[1] * c(cos(r4[2]*2*pi),sin(r4[2]*2*pi))
+Q <- r4[3] * c(cos(r4[4]*2*pi),sin(r4[4]*2*pi))
+
+out1 <- my.hyp.dist1(P,Q)
+out2 <- my.hyp.dist2(P,Q)
+out1$dhyp1
+out1$dhyp2
+out2
+```
+
+念のため、測地線円と単位円との交点を描図しておく。
+
+```{r}
+plot(cos(t),sin(t),type="l",asp=1)
+points(P[1],P[2],pch=20,col=2)
+points(Q[1],Q[2],pch=20,col=3)
+points(out1$A[1],out1$A[2],pch=20,col=4)
+points(out1$B[1],out1$B[2],pch=20,col=5)
+```
+
+ちなみに、双曲線模型では、円盤上の２点間距離を、いったん、双曲面上の座標に戻し、
+そこでのミンコフスキー内積を計算し、それに基づいて計算していた。
+
+その方法も再実装する。
+
+```{r}
+my.hyp.dist3 <- function(P,Q){
+  P.hyp.cds <- my.pdisk.coords.inv(P)
+  Q.hyp.cds <- my.pdisk.coords.inv(Q)
+  return(my.hyp.dist(P.hyp.cds,Q.hyp.cds))
+}
+
+```
+
+
+一致することを確認する。
+```{r}
+n <- 10000
+x. <- runif(n,min=-1,max=1)
+y. <- runif(n,min=-1,max=1)
+r2 <- x.^2 + y.^2
+s <- which(r2 < 1)
+x. <- x.[s]
+y. <- y.[s]
+plot(x.,y.,pch=20,cex=0.01,asp=TRUE)
+
+hypD1 <- apply(cbind(x.,y.),1,my.hyp.dist2,c(x.[1],y.[1]))
+hypD2 <- apply(cbind(x.,y.),1,my.hyp.dist3,c(x.[1],y.[1]))
+
+plot(hypD1,hypD2)
+
+```
+
+
+### 円～等距離点集合
+
+ポアンカレ・ディスク上の円は、ある点からの測地線的距離が一定の点の集合。
+
+```{r}
+n <- 10000
+x. <- runif(n,min=-1,max=1)
+y. <- runif(n,min=-1,max=1)
+r2 <- x.^2 + y.^2
+s <- which(r2 < 1)
+x. <- x.[s]
+y. <- y.[s]
+
+hypD1 <- apply(cbind(x.,y.),1,my.hyp.dist2,c(x.[1],y.[1]))
+
+col <- ceiling(hypD1/max(hypD1)*10)
+plot(x.,y.,pch=20,cex=1,asp=TRUE,col=col)
+```
+
+
+### 円ではないが、円のようなもの
+
+双曲幾何では、いわゆる円の他に、Hypercycle・Hypocycleと言う２つの異なるものが、円と同様に閉じた点集合となる
+
+* 円は、ある点から双曲幾何的距離が等距離の点の集合。
+* Hypercycleは双曲幾何的直線から等距離にある点の集合。ただし、点と直線との距離は、直線上の点との距離のうち最小のもののこと。ポアンカレ・ディスクの円周と直交しない円が作る曲線がこれに相当する。
+* Hypocycyleは、そのcycleに直行する測地線が漸近的に１点に集まるようなサイクルである。ポアンカレ・ディスクの内部の円で、ディスクに内接する。
+
+### Hypercycle
+
+ある直線から等距離の点の集合は、ユークリッド幾何では、平行な直線になる。
+ただし、ユークリッド幾何での平行な直線は、「交点を持たない」直線のことでもある。
+
+双曲幾何では、交わらないことと等距離であることが、同じことにならない。
+
+ある距離を持って等距離な線はある線となり、それは（片側に）１本引けるだけだが、交点を持たない直線は２本以上（たいていは無数に）引ける。
+
+これも視覚化してみよう。
+
+２点を通る測地線を引き、その線との最短距離でディスクを色分けしてみる。
+
+まずは測地線。特に、円板上の点。
+```{r}
+P <- rnorm(2) * 1
+Q <- rnorm(2) *1
+tmp <- my.orth.circle2(P,Q)
+r <- tmp$r
+ctr <- tmp$ctr
+t <- seq(from=0,to=1,length=1000)*2*pi
+pnts <- cbind(r*cos(t)+ctr[1],r*sin(t)+ctr[2])
+# このうち、円板上の点のみを選ぶ
+s <- which(apply(pnts^2,1,sum) < 1)
+pnts <- pnts[s,]
+plot(cos(t),sin(t),type="l",asp=1)
+points(pnts,type="l",col=2)
+```
+円板上の乱点と、測地線上の点との双曲幾何的距離を計算し、その中の最小値を取り出す。
+
+
+```{r}
+n <- 10000
+x. <- runif(n,min=-1,max=1)
+y. <- runif(n,min=-1,max=1)
+r2 <- x.^2 + y.^2
+s <- which(r2 < 1)
+x. <- x.[s]
+y. <- y.[s]
+
+hypD.geod <- matrix(0,length(s),length(pnts[,1]))
+
+for(i in 1:length(pnts[,1])){
+  tmp <- apply(cbind(x.,y.),1,my.hyp.dist2,pnts[i,])
+  hypD.geod[,i] <- tmp
+}
+hypD.geod.min <- apply(hypD.geod,1,min)
+```
+
+描図すると、測地線からの等距離点集合は円弧をなすが、それは単位円周と直交していないことがわかる。
+
+```{r}
+col <- ceiling(hypD.geod.min/max(hypD.geod.min)*10)
+plot(x.,y.,pch=20,cex=1,asp=TRUE,col=col)
+points(pnts,type="l",col=2,lwd=2)
+```
+
+### Hypocycle
+
+可視化してみる。
+
+円周上の点を取り、その点で内接する円を描く。これがHypocycle。
+
+Hypocycle上の任意の点と、内接点とを通る測地線(円)が、Hypocycleと直交していることを示すことで、視覚化したものとする。
+
+Hypocycleがしめしているのは、双曲幾何での直線に直交する直線は、互いに交差することがないが、無限遠では１点に集中する、ということである。
+
+```{r}
+# 内接点を定める角度
+theta <- runif(1)*2*pi
+# 内接円の半径
+r <- runif(1)*0.5 + 0.25
+# 内接円の中心座標
+ctr <- (1-r) * c(cos(theta),sin(theta))
+
+t <- seq(from=0,to=1,length=1000)*2*pi
+pnts <- cbind(r*cos(t)+ctr[1],r*sin(t)+ctr[2])
+
+plot(cos(t),sin(t),type="l",asp=1)
+points(pnts,type="l",col=2)
+
+n.line <- 10
+
+t.samples <- sample(1:length(t),n.line)
+
+
+for(i in 1:n.line){
+  P <- c(cos(theta),sin(theta)) # 内接点
+  Q <- pnts[t.samples[i],]
+  tmp <- my.orth.circle2(P,Q)
+  r <- tmp$r
+  ctr <- tmp$ctr
+  tmp.pnts <- cbind(r*cos(t)+ctr[1],r*sin(t)+ctr[2])
+  points(tmp.pnts,type="l",col=i+1)
+  
+}
+```
+
+## 拡大指数型分布族表現への応用の試み
+
+### 拡大指数型分布族の$\theta$座標推定
+
+２つの正規分布の混合比を１パラメタとする例。
+
+```{r}
+n.sample <- 200
+r <- runif(n.sample)
+m1 <- 0
+sd1 <- 1
+m2 <- 1
+sd2 <- 1
+x <- seq(from=-5,to=5,length=1000)
+
+ps <- matrix(0,n.sample,length(x))
+for(i in 1:n.sample){
+  ps[i,] <- r[i]*dnorm(x,m1,sd1) + (1-r[i]) * dnorm(x,m2,sd2)
+}
+ps <- ps/apply(ps,1,sum)
+matplot(t(ps),type="l")
+```
+空間次元１、時間次元１であることが、固有値の様子からわかる。
+
+```{r}
+ipmat <- ps %*% t(ps)
+logipmat <- log(ipmat)/2
+eigen.out <- eigen(logipmat)
+plot(eigen.out[[1]])
+```
+
+```{r}
+cols <- c(1,length(eigen.out[[1]]))
+x.time <- t(t(eigen.out[[2]][,cols]) * sqrt(abs(eigen.out[[1]][cols])))
+plot(x.time)
+```
+
+
+
+```{r}
+ptntl <- x.time[,1]^2 - x.time[,2]^2
+plot(sort(ptntl))
+plot(r,ptntl)
+```
+
+### ミンコフスキー空間としてとらえる
+
+#### ミンコフスキー空間を双曲面の積み重ねに分解する
+
+この節は、[Minkowski space(Wikipedia記事)のGeometryの節](https://en.wikipedia.org/wiki/Minkowski_space#Geometry)節に
+に従って書いてある。
+
+ミンコフスキー空間では、n個の正の固有値とm個の負の固有値によってミンコフスキー内積が定まる。
+
+そのうちn=3,m=1のものは、物理学・相対性理論で重要なものであり、資料が多い。
+
+この$M^{n=3,m=1}$では、内積が
+$$
+v_x u_x + v_y u_y + v_z u_z - v_t u_t
+$$
+と計算される。
+
+この空間の各点を距離を保ったままユークリッド空間に埋め込むことはできない。
+
+球面幾何の場合には、次元を一つ上げることで埋め込める（それが球面）のに対して、
+双曲幾何では、次元を一つあげてもうまくいかない、ということである。
+
+双曲幾何空間全体を埋め込むことはできないが、双曲幾何空間を
+
+$$
+x^2 + y^2 + z^2 - t^2 = R^2; R\in [0,\infty)
+$$
+という（超）双曲面に分けると、個々の（超）双曲面は、埋め込める。
+
+埋め込みのモデルとして、「双曲面モデル」「ポアンカレ・ディスク（ポアンカレ・ボール）モデル」「ポアンカレの半平面モデル」など複数のものが知られている。
+
+この（超）双曲面は、一定負のガウス曲率$-1/R^2$を持った「定負曲率空間」である。
+
+ミンコフスキー空間自体はリーマン多様体ではなく、擬リーマン多様体であるが、（超）双曲面を埋め込んだ各モデルはリーマン多様体になっていて、そのリーマン計量が定まっている。
+
+今、時間軸の座標を$t$、空間軸の座標を$\mathbf(x)$とすると
+
+$$
+(t,\mathbf{x}) \to \mathbf{u}= \frac{R \mathbf{x}}{(R+t)}\\
+\mathbf{u} \to (t,\mathbf{x}) = (R\frac{R^2+|\mathbf{u}|^2}{R^2-|\mathbf{u}|^2},\frac{2R^2|\mathbf{u}}{R^2-|\mathbf{u}|^2})
+$$
+
+これは、双曲面モデル、ポアンカレ・ディスクモデルのところでは、$R=1$に限定して扱ってきた式の、一般化したものに相当する。
+
+
+```{r}
+# ベクトルxの最後の座標が時間軸とする
+my.pdisk.coords.R <- function(x){
+  t <- x[length(x)]
+  x. <- x[-length(x)]
+  R <- sqrt(-sum(x^2) + 2 * t^2)
+  u <- R*x./(R+t)
+  return(list(u=u,R=R))
+}
+my.pdisk.coords.inv.R <- function(u,R){
+  t <- R * (R^2+sum(u^2))/(R^2-sum(u^2))
+  x. <- 2*R^2*u/(R^2-sum(u^2))
+  return(c(x.,t))
+}
+
+```
+
+念のため、R=1の例について検算する
+```{r}
+x <- 0.4
+y <- 0.3
+z <- sqrt(x^2+y^2+1)
+u1 <- my.pdisk.coords(c(x,y,z))
+u2 <- my.pdisk.coords.R(c(x,y,z))
+print(u1)
+print(u2)
+my.pdisk.coords.inv(u1)
+my.pdisk.coords.inv.R(u2$u,u2$R)
+```
+
+#### 指数型分布族表現座標を双曲幾何埋め込み
+
+```{r}
+out <- matrix(unlist(apply(-x.time,1,my.pdisk.coords.R)),ncol=2,byrow=TRUE)
+
+#out. <- apply(cbind(rep,0,length(x.time[,1]),x.time),1,my.pdisk.coords)
+```
+```{r}
+plot(out)
+```
+
+
+
+```{r,webgl=TRUE}
+plot3d(cbind(out,r))
+```
