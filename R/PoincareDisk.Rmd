@@ -620,7 +620,7 @@ for(i in 1:n.line){
 
 ```{r}
 n.sample <- 200
-r <- runif(n.sample)
+r <- runif(n.sample) 
 m1 <- 0
 sd1 <- 1
 m2 <- 1
@@ -646,6 +646,9 @@ plot(eigen.out[[1]])
 ```{r}
 cols <- c(1,length(eigen.out[[1]]))
 x.time <- t(t(eigen.out[[2]][,cols]) * sqrt(abs(eigen.out[[1]][cols])))
+# time座標が正になるか負になるかはeigen()関数ではコントロールできないので
+# 出力後に正に調整する
+x.time <- sign(x.time[1,2]) * x.time
 plot(x.time)
 ```
 
@@ -701,6 +704,8 @@ $$
 
 これは、双曲面モデル、ポアンカレ・ディスクモデルのところでは、$R=1$に限定して扱ってきた式の、一般化したものに相当する。
 
+ディスクへの写像座標は(0,-R)と双曲面上の点とを結んだ線によって得られる。
+
 
 ```{r}
 # ベクトルxの最後の座標が時間軸とする
@@ -734,17 +739,136 @@ my.pdisk.coords.inv.R(u2$u,u2$R)
 
 #### 指数型分布族表現座標を双曲幾何埋め込み
 
-```{r}
-out <- matrix(unlist(apply(-x.time,1,my.pdisk.coords.R)),ncol=2,byrow=TRUE)
+負の固有値を持つ内積行列で定められた２次元座標をプロットすると、二次曲線様のカーブになっている。
 
+二次関数推定をして実際に、二次曲線であることを確かめる。
+
+２つの正規分布の比率r:(1-r)を0.5:0.5に分けている場合に相当する点を強調して打点しておく。
+
+x=0に相当している。
+
+```{r}
+y <- x.time[,2]
+x <- x.time[,1]
+model <- lm(y ~ poly(x,2))
+print(model)
+```
+
+```{r}
+plot(x.time)
+abline(0,1)
+abline(0,-1)
+xx <- seq(from=min(x.time),to=max(x.time),length=100)
+lines(xx, predict(model, data.frame(x=xx)), col='blue')
+closest05 <- which(abs(r-0.5)==min(abs(r-0.5)))
+points(x.time[closest05,1],x.time[closest05,2],pch=20,cex=3)
+```
+
+この二次曲線は双曲幾何空間にあると思われるので、それがわかるように、描図範囲と双曲線の漸近直線とを描いた上で、二次曲線を描く。
+
+双曲線の漸近線と交差する二次曲線の（ごく）一部をなしていることが見て取れる。
+
+```{r}
+xlim <- range(x.time) + c(-10,10)
+ylim <- range(x.time) + c(-10,10)
+plot(x.time,xlim=xlim,ylim=ylim)
+abline(0,1)
+abline(0,-1)
+xx <- seq(from=min(x.time)-10,to=max(x.time)+10,length=100)
+lines(xx, predict(model, data.frame(x=xx)), col='blue')
+```
+
+双曲幾何空間をユークリッド空間的に実現するには、双曲面（双曲線）ごとにモデル（ポアンカレ・ディスクのような）に見立て、異なる双曲面（双曲線）に乗っている点は異なるモデル空間上の点とすることになる。
+
+以下で、それを行う。
+
+Rが双曲線を指定し、
+モデル（ここでは、$[-1,1]$線分上の座標を求める。
+
+この座標系では、オリジナルの標本セットの対称性を持った座標系が得られている。
+
+```{r}
+out <- matrix(unlist(apply(sign(x.time[,2])[1]*x.time,1,my.pdisk.coords.R)),ncol=2,byrow=TRUE)
+x.poincare <- out[,1]
+R <- out[,2]
 #out. <- apply(cbind(rep,0,length(x.time[,1]),x.time),1,my.pdisk.coords)
 ```
+
+比率が0.5:0.5のときにRが最大になっている様子が見て取れる。
+
 ```{r}
-plot(out)
+plot(x.poincare,R)
+abline(v=0)
+abline(h=max(R))
+points(x.poincare[closest05],R[closest05],pch=20,cex=3)
 ```
 
-
+分布サンプルを発生させるときに用いたパラメタr（２つの正規分布の割合r:(1-r))との関係を図示しておく。
 
 ```{r,webgl=TRUE}
-plot3d(cbind(out,r))
+plot3d(cbind(x.poincare,R,r))
+```
+
+双曲線$x^2-time^2=-R^2$の$R$が判明したので、双曲幾何空間に双曲線を加えて図示してみる。
+
+２つの正規分布の比率が0.5:0.5に一番近い点を強調して表示しておく。
+
+二次曲線では、最小値を取っていないが、Rの値が点によって異なることで、
+
+ポアンカレ・ディスク上の点は、(0,-R)と結んだ直線のtime=0との交点。
+
+```{r}
+plot(x.time)
+abline(0,1)
+abline(0,-1)
+xx <- seq(from=min(x.time),to=max(x.time),length=500)
+lines(xx, predict(model, data.frame(x=xx)), col='blue')
+
+s <- sample(1:length(x.time[,1]),100)
+for(i in 1:length(s)){
+  this.R <- R[s[i]]
+  tt <- sqrt(xx^2+this.R^2) * sign(x.time[1,2])
+  lines(xx,tt,col=i+1)
+  points(x.poincare[s[i]],0,col=i+1)
+  segments(x.time[s[i],1],x.time[s[i],2],0,-this.R)
+}
+
+points(x.time[closest05,1],x.time[closest05,2],pch=20,cex=3)
+```
+```{r}
+ylim <- c(-max(R),max(x.time[,2]))
+plot(x.time,ylim=ylim)
+#plot(x.time)
+abline(0,1)
+abline(0,-1)
+
+for(i in 1:length(s)){
+  this.R <- R[s[i]]
+  tt <- sqrt(xx^2+this.R^2) * sign(x.time[1,2])
+  lines(xx,tt,col=i+1)
+  points(x.poincare[s[i]],0,col=i+1)
+  segments(x.time[s[i],1],x.time[s[i],2],0,-this.R)
+}
+closest05 <- which(abs(r-0.5)==min(abs(r-0.5)))
+points(x.time[closest05,1],x.time[closest05,2],pch=20,cex=3)
+```
+この二次曲線は双曲幾何空間にあると思われるので、それがわかるように、描図範囲と双曲線の漸近直線とを描いた上で、二次曲線を描く。
+
+双曲線の漸近線と交差する二次曲線の（ごく）一部をなしていることが見て取れる。
+
+```{r}
+xlim <- range(x.time) + c(-10,10)
+ylim <- range(x.time) + c(-10,10)
+plot(x.time,xlim=xlim,ylim=ylim)
+abline(0,1)
+abline(0,-1)
+xx <- seq(from=min(x.time)-10,to=max(x.time)+10,length=100)
+lines(xx, predict(model, data.frame(x=xx)), col='blue')
+s <- sample(1:length(x.time[,1]),10)
+for(i in 1:length(s)){
+  this.R <- R[s[i]]
+  tt <- sqrt(xx^2+this.R^2) * sign(x.time[1,2])
+  lines(xx,tt,col=i+1)
+}
+
 ```
