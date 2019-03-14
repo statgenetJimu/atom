@@ -1,0 +1,138 @@
+---
+title: "拡大指数型分布族2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(knitr)
+library(rgl)
+knit_hooks$set(webgl = hook_webgl)
+```
+```{r}
+my.theta.decomposition <- function(P){
+  n <- length(P[,1])
+	# log ( 函数内積) / 2 が\theta座標内積であるので、それをペアワイズに求める
+	H <- log(P %*% t(P)) /2
+
+	# 固有値分解する
+	eigen.out <- eigen(H)
+	# 正定値ではない
+	#plot(eigen.out[[1]])
+	# このままではうまくないが、むりやり、H = Theta %*% t(Theta) と分解することにする
+	# 固有ベクトルを並べた行列を複素数行列オブジェクトにする
+	V <- eigen.out[[2]] + 0*1i
+	# 固有値の平方根を対角成分にする行列
+	S <- diag((eigen.out[[1]] + 0*1i)^0.5)
+	# theta座標を各標本分布に与える
+	Theta <- V %*% S
+	# H = Theta %*% t(Theta)の検算
+	#range(Re(Theta%*% t(Theta) -H))
+	#range(Im(Theta%*% t(Theta) -H))
+
+	# 分布型標本にTheta という座標を与えることができた
+	# この座標は一部の軸が実数で
+	# 一部の軸が虚数である
+	# 実数軸の成分は、値の差が大きいほど、分布間距離は大きく
+	# 虚数軸の成分は、値の差が小さいほど、分布間距離は大きい
+
+	# log(P) = C(x) + Theta F - \Psi(Theta)
+	# のC,Fを解きたい
+
+	logP <- log(P)
+	Psi <- diag(H)
+
+	# C(x):定数項の分をFに組み込むべく、Thetaに1列加える
+	ThetaC <- cbind(Theta,rep(1,n))
+	# log(P) = ThetaC %*% F. - \Psi(Theta)
+	# Fの最下行がC(x)に相当する行
+
+	# logP. = log(P) + \Psi(Theta) 
+	logP. <- logP + Psi
+
+	# logP. = ThetaC F.
+	# 一般化逆行列を使って解く
+
+	F. <- ginv(ThetaC) %*% logP.
+
+	# 検算
+	#range(Mod(logP. - ThetaC %*% F.))
+
+	F <- F.[1:(length(F.[,1])-1),]
+	Cx <- F.[length(F.[,1]),]
+
+	# 検算２
+
+	logP.calc <- matrix(rep(Cx,n),nrow=n,byrow=TRUE) + Theta %*% F - Psi
+	#range(Re(logP.calc))
+	#range(Im(logP.calc)) # 虚部はない
+	# 一致する
+	#range(Mod(logP - logP.calc))
+
+
+	ThetaC.real <- matrix(0,n,n+1)
+	ThetaC.real[,n+1] <- 1
+	ThetaC.real[,which(eigen.out[[1]] >= 0)] <- Re(ThetaC[,which(eigen.out[[1]] >= 0)])
+	ThetaC.real[,which(eigen.out[[1]] < 0)] <- Im(ThetaC[,which(eigen.out[[1]] < 0)])
+
+	#matplot(ThetaC.real,type="l")
+
+	F.real <- F
+	F.real[which(eigen.out[[1]] >= 0),] <- Re(F.real[which(eigen.out[[1]] >= 0),])
+	F.real[which(eigen.out[[1]] < 0),] <- -Im(F.real[which(eigen.out[[1]] < 0),])
+
+	Theta.real <- ThetaC.real[,1:n]
+	logP.calc.real <- matrix(rep(Cx,n),nrow=n,byrow=TRUE) + Theta.real %*% F.real - Psi
+	#range(Re(logP.calc.real))
+	#range(Im(logP.calc.real)) # 虚部はない
+	# 一致する
+	print(range(Mod(logP - logP.calc.real)))
+
+	# Potential functionを、固有値　正の軸は+\theta^2、
+	# 固有値　負の軸は -\theta^2とすることで
+	# すべてのF,thetaが実数になる
+
+	Psi.real <- apply(Theta.real[,which(eigen.out[[1]] >= 0)]^2,1,sum)-apply(Theta.real[,which(eigen.out[[1]] < 0)]^2,1,sum)
+
+	#plot(Psi,Psi.real)
+
+	return(list(Theta.real=Theta.real,F.real=F.real,Cx=Cx,Psi.real=Psi.real,P=P,logP=logP,H=H,eigen.out=eigen.out))
+
+}
+```
+
+```{r}
+# 双曲幾何空間次元 (n,1)の指定
+n <- 2
+# ２つの正規分布
+n.sample <- 200
+r <- runif(n.sample)
+sd2s <- runif(n.sample)*0.5 + 1
+m1 <- 0
+sd1 <- 1
+m2 <- 1
+#sd2 <- 1
+x <- seq(from=-7,to=7,length=100)
+
+ps <- matrix(0,n.sample,length(x))
+for(i in 1:n.sample){
+  ps[i,] <- r[i]*dnorm(x,m1,sd1) + (1-r[i]) * dnorm(x,m2,sd2s[i])
+}
+ps <- ps/apply(ps,1,sum)
+matplot(x,t(ps),type="l")
+```
+```{r}
+library(MASS)
+out <- my.theta.decomposition(ps)
+out.logp <- matrix(rep(out$Cx,n.sample),nrow=n.sample,byrow=TRUE) + out$Theta.real %*% out$F.real - out$Psi.real
+range(Re(out.logp) - log(ps))
+```
+```{r}
+lop.remake <- t(cbind(out$F,out$C) %*% rbind(out$theta,rep(1,n.sample)))-out$psi
+```
+
+$$
+\psi(\mathbf{\theta}) = 
+$$
+```{r}
+
+```

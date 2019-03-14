@@ -9,31 +9,658 @@ library(rgl)
 knit_hooks$set(webgl = hook_webgl)
 ```
 
+## 関数の準備
 
-## 双曲面模型
+```{r}
+# R=1の場合
+my.pdisk.coords <- function(x){
+  x. <- x[1]/(x[3]+1)
+  y. <- x[2]/(x[3]+1)
+  return(c(x.,y.))
+}
+# 円板上の点の座標をx^2 + y^2 - z^2 = -1 という双曲面上に逆写像する
+my.pdisk.coords.inv <- function(x){
+  z <- (1+sum(x^2))/(1-sum(x^2))
+  tmp <- 2*x/(1-sum(x^2))
+  return(c(tmp,z))
+}
+# 任意のRの場合
+my.pdisk.coords.R <- function(x){
+  t <- x[length(x)]
+  x. <- x[-length(x)]
+  R <- sqrt(-sum(x^2) + 2 * t^2)
+  u <- R*x./(R+t)
+  return(list(u=u,R=R))
+}
+my.pdisk.coords.inv.R <- function(u,R){
+  t <- R * (R^2+sum(u^2))/(R^2-sum(u^2))
+  x. <- 2*R^2*u/(R^2-sum(u^2))
+  return(c(x.,t))
+}
+my.hyp.dist1 <- function(P,Q){
+  out <- my.orth.circle2(P,Q)
+  r <- out$r
+  d.ctr <- sqrt(sum(out$ctr^2)) # 原点から測地線円の中心までの距離
+  theta <- acos(1/d.ctr)
+  phi <- Arg(out$ctr[1] + 1i * out$ctr[2]) # 測地線円方向の角度
+  AB1 <- c(cos(phi-theta),sin(phi-theta))
+  AB2 <- c(cos(phi+theta),sin(phi+theta))
 
-この節は、[Hyperboloid model(Wikipedia記事)](https://en.wikipedia.org/wiki/Hyperboloid_model) 
-に従って書いてある。
+  AQ <- sqrt(sum((AB1-Q)^2))
+  PB <- sqrt(sum((P-AB2)^2))
+  AP <- sqrt(sum((AB1-P)^2))
+  QB <- sqrt(sum((Q-AB2)^2))
+  # A,BをAB1,AB2のどちらにするか、２通りで距離を算出する
+  dhyp1 <- log(AQ*PB/(AP*QB))
+  dhyp2 <- log(QB*AP/(PB*AQ))
+  
+  return(list(dhyp1=dhyp1,dhyp2=dhyp2,A=AB1,B=AB2,circle=out))
+}
+my.hyp.dist2 <- function(P,Q,r=1){
+  #r <- 1
+  PQ <- sqrt(sum((P-Q)^2))
+  OP <- sqrt(sum((P)^2))
+  OQ <- sqrt(sum((Q)^2))
+  
+  dhyp <- acosh(1+2*PQ^2*r^2/((r^2-OP^2)*(r^2-OQ^2)))
+  return(dhyp)
+}
+my.hyp.dist <- function(u,v){
+  acosh(- sum(u*v) + 2*u[length(u)]*v[length(v)])
+}
+my.hyp.dist.R <- function(u,v){
+  ip <- - sum(u*v) + 2*u[length(u)]*v[length(v)]
+  normu <- - sum(u*u) + 2*u[length(u)]*u[length(u)]
+  normv <- - sum(v*v) + 2*v[length(v)]*v[length(v)]
+  acosh(ip/sqrt(normu*normv))
+}
+my.hyp.dist3 <- function(P,Q){
+  P.hyp.cds <- my.pdisk.coords.inv(P)
+  Q.hyp.cds <- my.pdisk.coords.inv(Q)
+  return(my.hyp.dist(P.hyp.cds,Q.hyp.cds))
+}
+my.hyp.dist3.R <- function(P,Q,Rp,Rq){
+  P.hyp.cds <- my.pdisk.coords.inv.R(P,Rp)
+  Q.hyp.cds <- my.pdisk.coords.inv.R(Q,Rq)
+  return(my.hyp.dist.R(P.hyp.cds,Q.hyp.cds))
+}
 
-双曲面模型とは、n+1次元空間にある、ある(超)双曲面上の点を、n次元空間中の単位球体(円板)にあるルールで射影するもの。
-
-n+1次元空間は、ミンコフスキー空間になっており、内積の定義に負の固有値が入っているため、直線・平行線・距離の概念がユークリッド空間のそれとは異なっている。
-
-ミンコフスキー空間のm+1次元(超)平面は、n次元平面に射影されてm次元(超)平面になるが、それは、n+1次元空間の超平面が、双曲面とよぎった点の写像としてあらわされる。
-
-n=2の場合は、ミンコフスキー空間は３次元、射影は２次元円板、ミンコフスキー空間の平面が、ミンコフスキー空間の双曲面とよぎって、３次元空間上の曲線となり、その写像が、２次元円板上の曲線となる。
+```
+## 分布標本から双曲幾何空間座標の推定
 
 
-$$
-x^2 + y^2 - z^2 \le 0; z \ge 0
-$$
-の領域を考える。
+### 平均とｓｄの違う正規分布
 
-この空間に
-$$
-x^2 + y^2 - z^2 = -1
-$$
-という双曲面がある。
+```{r}
+# 双曲幾何空間次元 (n,1)の指定
+n <- 2
+# ２つの正規分布
+n.sample <- 400
+r <- runif(n.sample)
+sd2s <- runif(n.sample)*0.5 + 1
+m1s <- runif(n.sample)
+sd1s <- runif(n.sample) + 1
+sd1 <- 1
+m2 <- 1
+#sd2 <- 1
+x <- seq(from=-7,to=7,length=500)
+
+ps <- matrix(0,n.sample,length(x))
+for(i in 1:n.sample){
+  #ps[i,] <- r[i]*dnorm(x,m1,sd1) + (1-r[i]) * dnorm(x,m2,sd2s[i])
+  ps[i,] <- dnorm(x,m1s[i],sd1s[i]) 
+}
+ps <- ps/apply(ps,1,sum)
+matplot(x,t(ps),type="l")
+
+#ps <- sqrt(ps)
+ipmat <- ps %*% t(ps)
+logipmat <- log(ipmat)/2
+#logipmat <- ipmat
+eigen.out <- eigen(logipmat)
+plot(eigen.out[[1]])
+plot(eigen.out[[1]][1:100])
+cols <- c(1:n,length(eigen.out[[1]]))
+x.time <- t(t(eigen.out[[2]][,cols]) * sqrt(abs(eigen.out[[1]][cols])))
+# time座標が正になるか負になるかはeigen()関数ではコントロールできないので
+# 出力後に正に調整する
+x.time[,n+1] <- sign(x.time[1,n+1]) * x.time[,n+1]
+if(n==1){
+  plot(x.time[,1],x.time[,2])
+}else if(n==2){
+  plot3d(x.time)
+}
+if(n==1){
+  y <- x.time[,length(x.time[1,])]
+  x <- x.time[,1]
+  model <- lm(y ~ poly(x,2))
+  plot(x,y)
+  abline(0,1)
+  abline(0,-1)
+  xx <- seq(from=min(c(x,y)),to=max(c(x,y)),length=100)
+  lines(xx, predict(model, data.frame(x=xx)), col='blue')
+  
+}else if(n==2){
+  y <- x.time[,length(x.time[1,])]
+  x1 <- x.time[,1]
+  x2 <- x.time[,2]
+  x1sq <- x1^2
+  x2sq <- x2^2
+  df <- data.frame(x1=x1,x2=x2,x1sq=x1sq,x2sq=x2sq)
+  model <- lm(y ~ x1 + x2 + x1sq + x2sq)
+  xx1 <- xx2 <- seq(from=min(c(x1,x2)),to=max(c(x1,x2)),length=100)
+  xx12 <- expand.grid(xx1,xx2)
+  cf <- model$coefficients
+  #yy <- cf[1] + cf[2] * xx12[,1] + cf[3] * xx12[,2] + cf[4] * xx12[,1]^2 + cf[5] * xx12[,2]^2
+  yy <- predict(model, data.frame(x1=xx12[,1],x2=xx12[,2],x1sq=xx12[,1]^2,x2sq=xx12[,2]^2))
+  plot3d(x.time)
+  spheres3d(cbind(xx12[,1],xx12[,2],yy),col=2,radius=0.001)
+  spheres3d(x.time,col=3,radius=0.005)
+}
+```
+
+```{r,webgl=TRUE}
+out <- matrix(unlist(apply(x.time,1,my.pdisk.coords.R)),ncol=n+1,byrow=TRUE)
+x.poincare <- out[,1:n]
+R <- out[,n+1]
+if(n==1){
+  plot(x.poincare,R)
+}else if(n==2){
+  maxR <- max(R)
+  t <- seq(from=0,to=1,length=100)*2*pi
+  plot(maxR*cos(t),maxR*sin(t),type="l",asp=TRUE)
+  points(x.poincare,pch=20,cex=0.1)
+  plot3d(cbind(x.poincare,R))
+}
+#out. <- apply(cbind(rep,0,length(x.time[,1]),x.time),1,my.pdisk.coords)
+```
+
+```{r,webgl=TRUE}
+if(n==1){
+  plot(x.time)
+  abline(0,1)
+  abline(0,-1)
+  xx <- seq(from=min(x.time),to=max(x.time),length=500)
+  lines(xx, predict(model, data.frame(x=xx)), col='blue')
+
+  s <- sample(1:length(x.time[,1]),100)
+  for(i in 1:length(s)){
+    this.R <- R[s[i]]
+    tt <- sqrt(xx^2+this.R^2) * sign(x.time[1,2])
+    lines(xx,tt,col=i+1)
+    points(x.poincare[s[i]],0,col=i+1)
+    segments(x.time[s[i],1],x.time[s[i],2],0,-this.R)
+  }
+}else if(n==2){
+  plot3d(x.time)
+  spheres3d(cbind(xx12[,1],xx12[,2],yy),col=2,radius=0.001)
+  spheres3d(x.time,col=3,radius=0.005)
+  xx <- seq(from=min(x.time),to=max(x.time),length=500)
+  s <- sample(1:length(x.time[,1]),100)
+  for(i in 1:length(s)){
+    this.R <- R[s[i]]
+    tt <- sqrt(xx^2+this.R^2) * sign(x.time[1,length(x.time[1,1])])
+    #lines(xx,tt,col=i+1)
+    #points(x.poincare[s[i]],0,col=i+1)
+    #segments(x.time[s[i],1],x.time[s[i],2],0,-this.R)
+  }  
+}
+
+```
+
+
+```{r}
+sctd <- sample(1:n.sample,1)
+KLds <- rep(0,n.sample)
+IPds <- rep(0,n.sample)
+KLds.sym <- KLds
+for(i in 1:n.sample){
+  KLds[i] <- sum(ps[i,] * log(ps[i,]/ps[sctd,]))
+  IPds[i] <- -logipmat[i,sctd]*2 + (logipmat[i,i]+logipmat[sctd,sctd])
+  KLds.sym[i] <- (sum(ps[i,] * log(ps[i,]/ps[sctd,])) + sum(ps[sctd,] * log(ps[sctd,]/ps[i,])))/2
+}
+plot(KLds,IPds)
+plot(KLds.sym,IPds)
+col <- ceiling(KLds/max(KLds) * 10) + 1
+col.ip <- ceiling(IPds/max(IPds)*10) + 1
+col.sym <- ceiling(KLds.sym/max(KLds.sym)*10) +1
+```
+```{r}
+plot3d(x.time,webgl=TRUE)
+  spheres3d(cbind(xx12[,1],xx12[,2],yy),col=2,radius=0.001)
+  col.gr <- unique(col)
+  for(i in 1:length(col.gr)){
+    tmp <- col.gr[i]
+    tmp2 <- which(col==tmp)
+    spheres3d(x.time[tmp2,],col=tmp,radius=0.005)
+  }
+
+  par(mfcol=c(1,2))
+plot(x.poincare,pch=20,col=col,asp=TRUE) 
+plot(x.time[,1:2],pch=20,col=col,asp=TRUE)
+par(mfcol=c(1,1))
+```
+```{r,webgl=TRUE}
+plot3d(x.time,webgl=TRUE)
+  spheres3d(cbind(xx12[,1],xx12[,2],yy),col=2,radius=0.001)
+  col.gr <- unique(col.ip)
+  for(i in 1:length(col.gr)){
+    tmp <- col.gr[i]
+    tmp2 <- which(col.ip==tmp)
+    spheres3d(x.time[tmp2,],col=tmp,radius=0.005)
+  }
+  par(mfcol=c(1,2))
+plot(x.poincare,pch=20,col=col.ip,asp=TRUE) 
+plot(x.time[,1:2],pch=20,col=col.ip,asp=TRUE)
+par(mfcol=c(1,1))
+```
+```{r,webgl=TRUE}
+plot3d(x.time)
+  spheres3d(cbind(xx12[,1],xx12[,2],yy),col=2,radius=0.001)
+  col.gr <- unique(col.sym)
+  for(i in 1:length(col.gr)){
+    tmp <- col.gr[i]
+    tmp2 <- which(col.sym==tmp)
+    spheres3d(x.time[tmp2,],col=tmp,radius=0.005)
+  }
+  par(mfcol=c(1,2))
+plot(x.poincare,pch=20,col=col.sym,asp=TRUE) 
+plot(x.time[,1:2],pch=20,col=col.sym,asp=TRUE)
+par(mfcol=c(1,1))  
+```
+```{r,webgl=TRUE}
+pdisk.crds <- x.time
+for(i in 1:length(x.time[,1])){
+  tmp <- my.pdisk.coords.R(x.time[i,])
+  pdisk.crds[i,] <- c(tmp$u,tmp$R)
+}
+plot(pdisk.crds[,1:2])
+```
+### ２つの混合正規分布
+
+```{r}
+# 双曲幾何空間次元 (n,1)の指定
+n <- 2
+# ２つの正規分布
+n.sample <- 200
+r <- runif(n.sample)
+sd2s <- runif(n.sample)*0.5 + 1
+m1 <- 0
+sd1 <- 1
+m2 <- 1
+#sd2 <- 1
+x <- seq(from=-7,to=7,length=1000)
+
+ps <- matrix(0,n.sample,length(x))
+for(i in 1:n.sample){
+  ps[i,] <- r[i]*dnorm(x,m1,sd1) + (1-r[i]) * dnorm(x,m2,sd2s[i])
+}
+ps <- ps/apply(ps,1,sum)
+matplot(x,t(ps),type="l")
+
+#ps <- sqrt(ps)
+ipmat <- ps %*% t(ps)
+logipmat <- log(ipmat)/2
+#logipmat <- ipmat
+eigen.out <- eigen(logipmat)
+plot(eigen.out[[1]])
+plot(eigen.out[[1]][1:100])
+cols <- c(1:n,length(eigen.out[[1]]))
+x.time <- t(t(eigen.out[[2]][,cols]) * sqrt(abs(eigen.out[[1]][cols])))
+# time座標が正になるか負になるかはeigen()関数ではコントロールできないので
+# 出力後に正に調整する
+x.time[,n+1] <- sign(x.time[1,2]) * x.time[,n+1]
+if(n==1){
+  plot(x.time[,1],x.time[,2])
+}else if(n==2){
+  plot3d(x.time)
+}
+if(n==1){
+  y <- x.time[,length(x.time[1,])]
+  x <- x.time[,1]
+  model <- lm(y ~ poly(x,2))
+  plot(x,y)
+  abline(0,1)
+  abline(0,-1)
+  xx <- seq(from=min(c(x,y)),to=max(c(x,y)),length=100)
+  lines(xx, predict(model, data.frame(x=xx)), col='blue')
+  
+}else if(n==2){
+  y <- x.time[,length(x.time[1,])]
+  x1 <- x.time[,1]
+  x2 <- x.time[,2]
+  x1sq <- x1^2
+  x2sq <- x2^2
+  df <- data.frame(x1=x1,x2=x2,x1sq=x1sq,x2sq=x2sq)
+  model <- lm(y ~ x1 + x2 + x1sq + x2sq)
+  xx1 <- xx2 <- seq(from=min(c(x1,x2)),to=max(c(x1,x2)),length=100)
+  xx12 <- expand.grid(xx1,xx2)
+  cf <- model$coefficients
+  #yy <- cf[1] + cf[2] * xx12[,1] + cf[3] * xx12[,2] + cf[4] * xx12[,1]^2 + cf[5] * xx12[,2]^2
+  yy <- predict(model, data.frame(x1=xx12[,1],x2=xx12[,2],x1sq=xx12[,1]^2,x2sq=xx12[,2]^2))
+  plot3d(x.time)
+  spheres3d(cbind(xx12[,1],xx12[,2],yy),col=2,radius=0.001)
+  spheres3d(x.time,col=3,radius=0.005)
+}
+```
+
+```{r,webgl=TRUE}
+out <- matrix(unlist(apply(x.time,1,my.pdisk.coords.R)),ncol=n+1,byrow=TRUE)
+x.poincare <- out[,1:n]
+R <- out[,n+1]
+if(n==1){
+  plot(x.poincare,R)
+}else if(n==2){
+  t <- seq(from=0,to=1,length=100)*2*pi
+  plot(cos(t),sin(t),type="l",asp=TRUE)
+  points(x.poincare,pch=20,cex=0.1)
+  plot3d(cbind(x.poincare,R))
+}
+#out. <- apply(cbind(rep,0,length(x.time[,1]),x.time),1,my.pdisk.coords)
+```
+
+```{r,webgl=TRUE}
+if(n==1){
+  plot(x.time)
+  abline(0,1)
+  abline(0,-1)
+  xx <- seq(from=min(x.time),to=max(x.time),length=500)
+  lines(xx, predict(model, data.frame(x=xx)), col='blue')
+
+  s <- sample(1:length(x.time[,1]),100)
+  for(i in 1:length(s)){
+    this.R <- R[s[i]]
+    tt <- sqrt(xx^2+this.R^2) * sign(x.time[1,2])
+    lines(xx,tt,col=i+1)
+    points(x.poincare[s[i]],0,col=i+1)
+    segments(x.time[s[i],1],x.time[s[i],2],0,-this.R)
+  }
+}else if(n==2){
+  plot3d(x.time)
+  spheres3d(cbind(xx12[,1],xx12[,2],yy),col=2,radius=0.001)
+  spheres3d(x.time,col=3,radius=0.005)
+  xx <- seq(from=min(x.time),to=max(x.time),length=500)
+  s <- sample(1:length(x.time[,1]),100)
+  for(i in 1:length(s)){
+    this.R <- R[s[i]]
+    tt <- sqrt(xx^2+this.R^2) * sign(x.time[1,length(x.time[1,1])])
+    lines(xx,tt,col=i+1)
+    points(x.poincare[s[i]],0,col=i+1)
+    segments(x.time[s[i],1],x.time[s[i],2],0,-this.R)
+  }  
+}
+
+```
+### 正規分布と正規分布を尖らせた分布の合成分布
+```{r,webgl=TRUE}
+n <- 2
+# 正規分布と正規分布のk乗の分布
+k <- 4
+n.sample <- 200
+r <- runif(n.sample)
+sd2s <- runif(n.sample)*0.5 + 1
+m1 <- 0
+sd1 <- 1
+m2 <- 1
+#sd2 <- 1
+x <- seq(from=-7,to=7,length=1000)
+
+ps <- matrix(0,n.sample,length(x))
+for(i in 1:n.sample){
+  ps[i,] <- r[i]*dnorm(x,m1,sd1)^k + (1-r[i]) * dnorm(x,m2,sd2s[i])
+}
+ps <- ps/apply(ps,1,sum)
+matplot(x,t(ps),type="l")
+
+ipmat <- ps %*% t(ps)
+logipmat <- log(ipmat)/2
+eigen.out <- eigen(logipmat)
+plot(eigen.out[[1]])
+plot(eigen.out[[1]][1:100])
+cols <- c(1:n,length(eigen.out[[1]]))
+x.time <- t(t(eigen.out[[2]][,cols]) * sqrt(abs(eigen.out[[1]][cols])))
+# time座標が正になるか負になるかはeigen()関数ではコントロールできないので
+# 出力後に正に調整する
+x.time <- sign(x.time[1,2]) * x.time
+if(n==1){
+  plot(x.time[,1],x.time[,2])
+}else if(n==2){
+  plot3d(x.time)
+}
+if(n==1){
+  y <- x.time[,length(x.time[1,])]
+  x <- x.time[,1]
+  model <- lm(y ~ poly(x,2))
+  plot(x,y)
+  abline(0,1)
+  abline(0,-1)
+  xx <- seq(from=min(c(x,y)),to=max(c(x,y)),length=100)
+  lines(xx, predict(model, data.frame(x=xx)), col='blue')
+  
+}else if(n==2){
+  y <- x.time[,length(x.time[1,])]
+  x1 <- x.time[,1]
+  x2 <- x.time[,2]
+  x1sq <- x1^2
+  x2sq <- x2^2
+  df <- data.frame(x1=x1,x2=x2,x1sq=x1sq,x2sq=x2sq)
+  model <- lm(y ~ x1 + x2 + x1sq + x2sq)
+  xx1 <- xx2 <- seq(from=min(c(x1,x2)),to=max(c(x1,x2)),length=100)
+  xx12 <- expand.grid(xx1,xx2)
+  cf <- model$coefficients
+  #yy <- cf[1] + cf[2] * xx12[,1] + cf[3] * xx12[,2] + cf[4] * xx12[,1]^2 + cf[5] * xx12[,2]^2
+  yy <- predict(model, data.frame(x1=xx12[,1],x2=xx12[,2],x1sq=xx12[,1]^2,x2sq=xx12[,2]^2))
+  plot3d(x.time)
+  spheres3d(cbind(xx12[,1],xx12[,2],yy),col=2,radius=0.001)
+  spheres3d(x.time,col=3,radius=0.005)
+}
+```
+### 正規分布と矩形分布の混合分布
+
+矩形分布でも、範囲を定めれば、少ない固有値で表しうる
+```{r,webgl=TRUE}
+n <- 2
+my.drect <- function(x,min,max){
+  ret <- rep(0,length(x))
+  ret[which(x>= min & x <= max)] <- 1/(max-min)
+  return(ret)
+}
+n.sample <- 200
+r <- runif(n.sample)
+sd2s <- runif(n.sample)*0.5 + 1
+m1 <- 0
+sd1 <- 1
+m2 <- 1
+#sd2 <- 1
+x <- seq(from=-7,to=7,length=1000)
+
+ps <- matrix(0,n.sample,length(x))
+for(i in 1:n.sample){
+  ps[i,] <- r[i]*my.drect(x,-2,2) + (1-r[i]) * dnorm(x,m2,sd2s[i])
+}
+ps <- ps/apply(ps,1,sum)
+matplot(x,t(ps),type="l")
+
+ipmat <- ps %*% t(ps)
+logipmat <- log(ipmat)/2
+eigen.out <- eigen(logipmat)
+plot(eigen.out[[1]])
+plot(eigen.out[[1]][1:100])
+cols <- c(1:n,length(eigen.out[[1]]))
+x.time <- t(t(eigen.out[[2]][,cols]) * sqrt(abs(eigen.out[[1]][cols])))
+# time座標が正になるか負になるかはeigen()関数ではコントロールできないので
+# 出力後に正に調整する
+x.time <- sign(x.time[1,2]) * x.time
+if(n==1){
+  plot(x.time[,1],x.time[,2])
+}else if(n==2){
+  plot3d(x.time)
+}
+if(n==1){
+  y <- x.time[,length(x.time[1,])]
+  x <- x.time[,1]
+  model <- lm(y ~ poly(x,2))
+  plot(x,y)
+  abline(0,1)
+  abline(0,-1)
+  xx <- seq(from=min(c(x,y)),to=max(c(x,y)),length=100)
+  lines(xx, predict(model, data.frame(x=xx)), col='blue')
+  
+}else if(n==2){
+  y <- x.time[,length(x.time[1,])]
+  x1 <- x.time[,1]
+  x2 <- x.time[,2]
+  x1sq <- x1^2
+  x2sq <- x2^2
+  df <- data.frame(x1=x1,x2=x2,x1sq=x1sq,x2sq=x2sq)
+  model <- lm(y ~ x1 + x2 + x1sq + x2sq)
+  xx1 <- xx2 <- seq(from=min(c(x1,x2)),to=max(c(x1,x2)),length=100)
+  xx12 <- expand.grid(xx1,xx2)
+  cf <- model$coefficients
+  #yy <- cf[1] + cf[2] * xx12[,1] + cf[3] * xx12[,2] + cf[4] * xx12[,1]^2 + cf[5] * xx12[,2]^2
+  yy <- predict(model, data.frame(x1=xx12[,1],x2=xx12[,2],x1sq=xx12[,1]^2,x2sq=xx12[,2]^2))
+  plot3d(x.time)
+  spheres3d(cbind(xx12[,1],xx12[,2],yy),col=2,radius=0.001)
+  spheres3d(x.time,col=3,radius=0.005)
+}
+```
+
+### 正規分布と矩形分布の混合分布～その２
+
+有意な正の固有値がたくさんになる～
+```{r,webgl=TRUE}
+n <- 2
+my.drect <- function(x,min,max){
+  ret <- rep(0,length(x))
+  ret[which(x>= min & x <= max)] <- 1/(max-min)
+  return(ret)
+}
+n.sample <- 200
+r <- runif(n.sample)
+sd2s <- runif(n.sample)*0.5 + 1
+m1 <- 0
+sd1 <- 1
+m2 <- 1
+#sd2 <- 1
+x <- seq(from=-7,to=7,length=1000)
+
+ps <- matrix(0,n.sample,length(x))
+for(i in 1:n.sample){
+  ps[i,] <- my.drect(x,-r[i],2) +  dnorm(x,m2,sd2s[i])
+}
+ps <- ps/apply(ps,1,sum)
+matplot(x,t(ps),type="l")
+
+ipmat <- ps %*% t(ps)
+logipmat <- log(ipmat)/2
+eigen.out <- eigen(logipmat)
+plot(eigen.out[[1]])
+plot(eigen.out[[1]][1:100])
+cols <- c(1:n,length(eigen.out[[1]]))
+x.time <- t(t(eigen.out[[2]][,cols]) * sqrt(abs(eigen.out[[1]][cols])))
+# time座標が正になるか負になるかはeigen()関数ではコントロールできないので
+# 出力後に正に調整する
+x.time <- sign(x.time[1,2]) * x.time
+if(n==1){
+  plot(x.time[,1],x.time[,2])
+}else if(n==2){
+  plot3d(x.time)
+}
+if(n==1){
+  y <- x.time[,length(x.time[1,])]
+  x <- x.time[,1]
+  model <- lm(y ~ poly(x,2))
+  plot(x,y)
+  abline(0,1)
+  abline(0,-1)
+  xx <- seq(from=min(c(x,y)),to=max(c(x,y)),length=100)
+  lines(xx, predict(model, data.frame(x=xx)), col='blue')
+  
+}else if(n==2){
+  y <- x.time[,length(x.time[1,])]
+  x1 <- x.time[,1]
+  x2 <- x.time[,2]
+  x1sq <- x1^2
+  x2sq <- x2^2
+  df <- data.frame(x1=x1,x2=x2,x1sq=x1sq,x2sq=x2sq)
+  model <- lm(y ~ x1 + x2 + x1sq + x2sq)
+  xx1 <- xx2 <- seq(from=min(c(x1,x2)),to=max(c(x1,x2)),length=100)
+  xx12 <- expand.grid(xx1,xx2)
+  cf <- model$coefficients
+  #yy <- cf[1] + cf[2] * xx12[,1] + cf[3] * xx12[,2] + cf[4] * xx12[,1]^2 + cf[5] * xx12[,2]^2
+  yy <- predict(model, data.frame(x1=xx12[,1],x2=xx12[,2],x1sq=xx12[,1]^2,x2sq=xx12[,2]^2))
+  plot3d(x.time)
+  spheres3d(cbind(xx12[,1],xx12[,2],yy),col=2,radius=0.001)
+  spheres3d(x.time,col=3,radius=0.005)
+}
+```
+
+### 正規分布と正規分布を尖らせた分布の合成分布～尖らせ方にばらつきを持たせる
+
+
+```{r,webgl=TRUE}
+n <- 2
+# 正規分布と正規分布のk乗の分布
+
+n.sample <- 400
+r <- runif(n.sample)
+ks <- runif(n.sample)*3+1
+#sd2s <- runif(n.sample)*0.5 + 1
+m1 <- 0
+sd1 <- 1
+m2 <- 1
+sd2 <- 1
+x <- seq(from=-7,to=7,length=1000)
+
+ps <- matrix(0,n.sample,length(x))
+for(i in 1:n.sample){
+  ps[i,] <- r[i]*dnorm(x,m1,sd1)^ks[i] + (1-r[i]) * dnorm(x,m2,sd2)
+}
+ps <- ps/apply(ps,1,sum)
+matplot(x,t(ps),type="l")
+
+ipmat <- ps %*% t(ps)
+logipmat <- log(ipmat)/2
+eigen.out <- eigen(logipmat)
+plot(eigen.out[[1]])
+cols <- c(1:n,length(eigen.out[[1]]))
+x.time <- t(t(eigen.out[[2]][,cols]) * sqrt(abs(eigen.out[[1]][cols])))
+# time座標が正になるか負になるかはeigen()関数ではコントロールできないので
+# 出力後に正に調整する
+x.time <- sign(x.time[1,2]) * x.time
+if(n==1){
+  plot(x.time[,1],x.time[,2])
+}else if(n==2){
+  plot3d(x.time)
+}
+if(n==1){
+  y <- x.time[,length(x.time[1,])]
+  x <- x.time[,1]
+  model <- lm(y ~ poly(x,2))
+  plot(x,y)
+  abline(0,1)
+  abline(0,-1)
+  xx <- seq(from=min(c(x,y)),to=max(c(x,y)),length=100)
+  lines(xx, predict(model, data.frame(x=xx)), col='blue')
+  
+}else if(n==2){
+  y <- x.time[,length(x.time[1,])]
+  x1 <- x.time[,1]
+  x2 <- x.time[,2]
+  x1sq <- x1^2
+  x2sq <- x2^2
+  df <- data.frame(x1=x1,x2=x2,x1sq=x1sq,x2sq=x2sq)
+  model <- lm(y ~ x1 + x2 + x1sq + x2sq)
+  xx1 <- xx2 <- seq(from=min(c(x1,x2)),to=max(c(x1,x2)),length=100)
+  xx12 <- expand.grid(xx1,xx2)
+  cf <- model$coefficients
+  #yy <- cf[1] + cf[2] * xx12[,1] + cf[3] * xx12[,2] + cf[4] * xx12[,1]^2 + cf[5] * xx12[,2]^2
+  yy <- predict(model, data.frame(x1=xx12[,1],x2=xx12[,2],x1sq=xx12[,1]^2,x2sq=xx12[,2]^2))
+  plot3d(x.time)
+  spheres3d(cbind(xx12[,1],xx12[,2],yy),col=2,radius=0.001)
+  spheres3d(x.time,col=3,radius=0.005)
+}
+```
 
 
 ### 3次元ミンコフスキー空間座標の単位円板への射影
@@ -55,6 +682,9 @@ x = \frac{2x'}{1-x'^2-y'^2}\\
 y = \frac{2y'}{1-x'^2-y'^2}\\
 z = \frac{1+x'^2+y'^2}{1-x'^2-y'^2}
 $$
+
+３次元空間の双曲面 $x^2+y^2-z^2= -1$をポアンカレディスクに写像し、逆にポアンカレディスク上の点を、その双曲面に逆写像する関数
+
 ```{r}
 my.pdisk.coords <- function(x){
   x. <- x[1]/(x[3]+1)
@@ -67,38 +697,8 @@ my.pdisk.coords.inv <- function(x){
   tmp <- 2*x/(1-sum(x^2))
   return(c(tmp,z))
 }
-#my.pdisk.coords.inv_bk <- function(x){
-#  tmp <- x/sqrt(1-sum(x^2))
-#  z <- sqrt(sum(tmp^2)+1)
-#  return(c(tmp,z))
-#}
-# x^2+y^2-z^2=0という円錐に逆写像
-#my.pdisk.coords.inv.cone <- function(x){
-#  k <- (-1+sqrt(sum(x^2)))/(sum(x^2)-1)
-#  
-#  return(k * c(x,1))
-#}
-
 ```
 
-### 双曲面上の点の射影
-
-```{r}
-n <- 10000
-x <- runif(n,min=-10,max=10)
-y <- runif(n,min=-10,max=10)
-z <- sqrt(x^2 + y^2 + 1)
-
-xyz <- cbind(x,y,z)
-```
-
-```{r,webgl=TRUE}
-plot3d(xyz)
-```
-```{r}
-pd.crd <- apply(xyz,1,my.pdisk.coords)
-plot(t(pd.crd),pch=20,cex=0.1,asp=TRUE)
-```
 
 双曲面の外側にいくほど、円板上で点が密になる。
 
@@ -417,8 +1017,8 @@ my.hyp.dist1 <- function(P,Q){
   
   return(list(dhyp1=dhyp1,dhyp2=dhyp2,A=AB1,B=AB2,circle=out))
 }
-my.hyp.dist2 <- function(P,Q,r=1){
-  #r <- 1
+my.hyp.dist2 <- function(P,Q){
+  r <- 1
   PQ <- sqrt(sum((P-Q)^2))
   OP <- sqrt(sum((P)^2))
   OQ <- sqrt(sum((Q)^2))
@@ -645,14 +1245,10 @@ plot(eigen.out[[1]])
 
 ```{r}
 cols <- c(1,length(eigen.out[[1]]))
-tmp <- eigen.out[[2]][,cols]
-tmp2 <- apply(tmp^2,1,sum)
-tmp <- tmp/sqrt(tmp2)
-x.time <- t(t(tmp) * sqrt(abs(eigen.out[[1]][cols])))
-#x.time <- t(t(eigen.out[[2]][,cols]) * sqrt(abs(eigen.out[[1]][cols])))
+x.time <- t(t(eigen.out[[2]][,cols]) * sqrt(abs(eigen.out[[1]][cols])))
 # time座標が正になるか負になるかはeigen()関数ではコントロールできないので
 # 出力後に正に調整する
-x.time[,length(cols)] <- sign(x.time[1,2]) * x.time[,length(cols)]
+x.time <- sign(x.time[1,2]) * x.time
 plot(x.time)
 ```
 
@@ -691,7 +1287,7 @@ $$
 $$
 x^2 + y^2 + z^2 - t^2 = R^2; R\in [0,\infty)
 $$
-という（超）双曲面に分けると、個々の（超）双曲面は、半径Rの円板に埋め込める。
+という（超）双曲面に分けると、個々の（超）双曲面は、埋め込める。
 
 埋め込みのモデルとして、「双曲面モデル」「ポアンカレ・ディスク（ポアンカレ・ボール）モデル」「ポアンカレの半平面モデル」など複数のものが知られている。
 
@@ -703,10 +1299,8 @@ $$
 
 $$
 (t,\mathbf{x}) \to \mathbf{u}= \frac{R \mathbf{x}}{(R+t)}\\
-\mathbf{u} \to (t,\mathbf{x}) = (R\frac{R^2+|\mathbf{u}|^2}{R^2-|\mathbf{u}|^2},\frac{2R^2 \mathbf{u}}{R^2-|\mathbf{u}|^2})
+\mathbf{u} \to (t,\mathbf{x}) = (R\frac{R^2+|\mathbf{u}|^2}{R^2-|\mathbf{u}|^2},\frac{2R^2|\mathbf{u}}{R^2-|\mathbf{u}|^2})
 $$
-
-
 
 これは、双曲面モデル、ポアンカレ・ディスクモデルのところでは、$R=1$に限定して扱ってきた式の、一般化したものに相当する。
 

@@ -1,0 +1,156 @@
+---
+title: "拡大指数型分布族の幾何"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(knitr)
+library(rgl)
+knit_hooks$set(webgl = hook_webgl)
+```
+
+## 拡大指数型分布族表現
+
+$$
+p(\mathbf{x}) = e^{C(\mathbf{x}) + \mathbf{F}(\mathbf{x}) \cdot \mathbf{\theta} - \psi(\mathbf{\theta})}\\
+\log{p(\mathbf{x})} = C(\mathbf{x}) + \mathbf{F}(\mathbf{x}) \cdot \mathbf{\theta} - \psi(\mathbf{\theta})\\
+\psi(\mathbf{\theta}) = \mathbf{\theta}^T \Sigma \mathbf{\theta} = \sum_i \sigma_i \theta_i^2\\
+$$
+
+ただし、$\Sigma$は対角行列で、対角成分が$\pm 1$のみで構成されたもの。
+
+$$
+\Sigma = (s_{ij})\\
+s_{ij} = \sigma_i= \pm 1; \text{  if } i = j\\
+s_{ij} = 0; \text{otherwise}
+$$
+### ポテンシャル関数とミンコフスキー内積
+
+ベクトルの内積としていわゆる、成分ごとの積の和ではなく、以下のような内積を定義する。
+
+$$
+\phi_{M}(\mathbf{v},\mathbf{u}) = \mathbf{v}^T \Sigma \mathbf{u} = \sum_i \sigma_i v_i u_i
+$$
+
+$\sigma$に負が含まれるとき、ミンコフスキー内積と呼ばれる。
+
+### 関数内積と$\mathbf{\Theta},\psi(\mathbf{\Theta})$
+
+このとき、確率密度分布・確率質量分布の内積の対数の半分を成分とする行列は$\psi(\mathbf{\Theta})$で以下のようにあらわされる。
+$$
+M = (m_{ij})=(\frac{1}{2}\log{<p(\mathbf{x}_i),p(\mathbf{x}_j)>})\\
+= \phi_M(\mathbf{\theta}_i,\mathbf{\theta}_j) = \mathbf{\theta}_i^T \Sigma \mathbf{\theta}_j
+$$
+
+```{r}
+my.Minkowski.ip <- function(u,v,diags){
+  sum(u*v*diags)
+}
+
+n.sample <- 100
+d <- 3
+thetas <- matrix(runif(n.sample*(d-1))*1,nrow=n.sample)
+tmp <- apply(thetas^2,1,sum)
+t <- sqrt(runif(1) * 0.2 + tmp)
+thetas <- cbind(thetas,t)
+tmp <- apply(thetas^2,1,sum)
+thetas <- thetas/sqrt(tmp)
+Sigma <- diag(c(rep(1,d-1),-1))
+M <- thetas %*% Sigma %*% t(thetas)
+
+eigen.out <- eigen(M)
+plot(eigen.out[[1]])
+abline(h=0)
+```
+```{r}
+new.thetas <- eigen.out[[2]][,c(1:(d-1),n.sample)] %*% diag(sqrt(abs(eigen.out[[1]][c(1:(d-1),n.sample)])))
+
+range(thetas %*% Sigma %*% t(thetas) - new.thetas %*% Sigma %*% t(new.thetas))
+```
+
+```{r,webgl=TRUE}
+plot3d(rbind(thetas,new.thetas))
+for(i in 1:n.sample){
+  segments3d(rbind(thetas[i,],new.thetas[i,]))
+}
+```
+```{r}
+Rot <- t(new.thetas[1:d,]) %*% solve(t(thetas[1:d,]))
+Rot %*% t(Rot)
+range(Rot %*% t(thetas) - t(new.thetas))
+```
+### 関数内積とその対数行列
+
+
+
+は、次のように固有値分解される。
+
+$$
+M <- V^T \Lambda \Sigma V
+$$
+
+
+ただし、$V$は直交行列($V^T V = I$)。
+$$
+V = (\mathbf{v}_1,\mathbf{v}_2,...)\\
+\mathbf{v}_i^T \cdot \mathbf{v}_j = <\mathbf{v}_i, \mathbf{v}_j> = 1; \text{  if } i = j\\
+\mathbf{v}_i^T \cdot \mathbf{v}_j = 0; \text{ otherwise}
+$$
+また、$\Lambda$は対角行列で、その対角成分はすべて正。
+$$
+\Lambda = (\lambda_{ij})\\
+\lambda_{ij} > 0; \text{  if } i = j\\
+\lambda_{ij} = 0; \text{otherwise}
+$$
+
+## $M,V,\Lambda$と$\mathbf{\Theta}$との関係
+
+また、$\Sigma$は、拡大指数型分布族表現で用いた、ポテンシャル関数を定める$\Sigma$と同じである。
+
+このとき以下が成り立つ。
+
+$$
+\mathbf{\Theta} = \sqrt{\Lambda} V
+$$
+
+
+ただし、$\sqrt{\Lambda}$は対角行列で、成分が、$\Lambda$の平方根であるような行列。
+
+$$
+\sqrt{\Lambda} \sqrt{\Lambda} = \Lambda\\
+\sqrt{\Lambda} = (\sqrt{\lambda_{ij}})
+$$
+
+
+### $\mathbf{\Theta}$座標の幾何
+
+#### $V$の幾何
+
+$V$の列ベクトル$\mathbf{v_i}$は単位ベクトル。
+
+各ベクトルは相互に直交し、正規直交基底の各基底ベクトルをなしている。
+
+これは、超球
+```{r}
+
+
+```
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
