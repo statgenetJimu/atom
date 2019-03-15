@@ -3,9 +3,9 @@ library(igraph)
 library(rgl)
 library(RFOC)
 
-n.mesh <- 16
+n.mesh <- 24
 n <- 5
-k <- 5
+k <- 4
 A. <- matrix(runif(n^2), n, n)
     A.[1, 1] <- k
     B <- matrix(rnorm(n^2), n, n)
@@ -47,7 +47,7 @@ my.matpower.simple2 <- function(A,k){
   return(ret)
 }
 
-k <- 100
+k <- 110
 Ak <- my.matpower.simple2(admat,k)
 
 gd2 <- 1/Ak
@@ -57,7 +57,7 @@ max.k <- 10
 ctout <- cutree(hc, k = 1:max.k) #k = 1 is trivial
 #cutree(hc, h = 250)
 
-K <- 9
+K <- 3
     plot3d(xxx$v)
     segments3d(xxx$v[c(t(xxx$edge)), ])
 
