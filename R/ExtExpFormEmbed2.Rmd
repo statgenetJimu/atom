@@ -268,6 +268,16 @@ plot(x.poincare,pch=20,col=col.sym,asp=TRUE)
 plot(x.time[,1:2],pch=20,col=col.sym,asp=TRUE)
 par(mfcol=c(1,1))  
 ```
+
+$\eta$ 座標
+
+
+```{r}
+my.eta <- function(p,F){
+  sum(p*F)
+}
+
+```
 ```{r,webgl=TRUE}
 pdisk.crds <- x.time
 for(i in 1:length(x.time[,1])){
