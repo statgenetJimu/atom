@@ -1,19 +1,13 @@
 library(devtools)
-install.packages("RFOC")
-install_github("ryamada22/Ronlryamada")
+#install.packages("RFOC")
+#install_github("ryamada22/Ronlryamada")
+library(RFOC)
 library(Ronlyryamada)
 library(rgl)
 library(MCMCpack)
 library(RColorBrewer)
-n <- 5
-k <- 5
-n.mesh <- 10
-A. <- matrix(runif(n^2), n, n)
-A.[1, 1] <- k
-B <- matrix(rnorm(n^2), n, n)
-xxx <- my.spherical.harm.mesh(A = A., B = B, n = n.mesh)
-plot3d(xxx$v)
-segments3d(xxx$v[c(t(xxx$edge)), ])
+library(igraph)
+library(rARPACK)
 my.voxel.from.trimesh <- function(xxx,Npt=10^3,scale=10){
   vs <- matrix(0,0,3)
   rnd <- rdirichlet(Npt,rep(1,3))
@@ -26,29 +20,46 @@ my.voxel.from.trimesh <- function(xxx,Npt=10^3,scale=10){
   }
   return(vs)
 }
-
-outVox <- my.voxel.from.trimesh(xxx)
-
-gd <- as.matrix(dist(outVox,method="manhattan"))
-gd <- gd==1
-g <- graph.adjacency(gd,mode="undirected")
-degrees(g)
-
-eigen.out <- eigen(gd)
-
-plot(eigen.out[[1]])
-
 my.plot.colSurface <- function(X,v,ncol=10,radius=1){
   plot3d(X)
   col <- floor((v-min(v))/(max(v)-min(v)) * (1-0.01/ncol) * ncol)+1
   uniquecol <- unique(col)
-  colpallette <- brewer.pal(ncol,"Spectral")
+  colpallette <- brewer.pal(ncol,"RdGy")
   for(i in 1:length(uniquecol)){
     tmp <- which(col==uniquecol[i])
     spheres3d(X[tmp,],col=colpallette[i],radius=radius)
   }
 }
-my.plot.colSurface(outVox,eigen.out[[2]][,1])
+
+n <- 5
+k <- 5
+n.mesh <- 32
+A. <- matrix(runif(n^2), n, n)
+A. <- matrix(0,n,n)
+A.[1, 1] <- k
+#A.[3,3] <- k-1
+B <- matrix(rnorm(n^2), n, n)
+B <- matrix(0,n,n)
+#B[1,1] <- 10
+xxx <- my.spherical.harm.mesh(A = A., B = B, n = n.mesh)
+plot3d(xxx$v)
+segments3d(xxx$v[c(t(xxx$edge)), ])
+
+outVox <- my.voxel.from.trimesh(xxx)
+
+gd. <- as.matrix(dist(outVox,method="manhattan"))
+gd <- matrix(0,length(gd.[,1]),length(gd.[1,]))
+gd[which(gd.==1)] <- 1
+g <- graph.adjacency(gd,mode="undirected")
+vdeg <- degree(g)
+my.plot.colSurface(outVox,vdeg)
+#eigen.out <- spEigen(gd)
+eigen.out <- eigs_sym(gd,k=5)
+#plot(eigen.out[[1]])
+plot(eigen.out$values)
+
+#my.plot.colSurface(outVox,eigen.out[[2]][,1])
+my.plot.colSurface(outVox,eigen.out$vectors[,1])
 
 ################
 library(VoxR)
