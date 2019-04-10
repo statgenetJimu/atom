@@ -136,7 +136,7 @@ M21 %*% v2
 グラフとは、点の集合と、点をつなぐ線(辺)の集合のペアのこと。
 
 ```{r}
-install.packages("igraph") # グラフを扱う関数を集めたパッケージを取り込む
+#install.packages("igraph") # グラフを扱う関数を集めたパッケージを取り込む
 library(igraph) # igraphパッケージの関数をサクサクと使うための宣言文
 ```
 
