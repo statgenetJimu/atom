@@ -1,0 +1,139 @@
+---
+title: "Rを使ってみる"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## 行列の前に
+
+### 四則演算
+
+[Rで四則演算](https://ryamada.hatenadiary.jp/entry/20111227/1324799547)
+
+### プロット
+
+$$
+y = 3 x^2 + 2
+$$
+
+```{r}
+# xを小刻みにたくさん作る
+x <- seq(from=0,to=3,by=0.1) # 0.1刻みで
+x[1]
+x[2] # 0.1 増えている
+```
+
+```{r}
+# xの中身を見てみる
+x
+```
+
+```{r}
+# yを計算する
+y <- 3 * x^2 + 2
+y
+```
+
+```{r}
+# プロットしてみる
+plot(x,y)
+```
+
+```{r}
+# ちょっと変える
+plot(x,y,type="l") # プロットのタイプはline
+```
+
+### 媒介変数表示
+
+円
+$$
+x = \cos{\theta}\\
+y = \sin{\theta}
+$$
+```{r}
+theta <- seq(from=0,to=2*pi,length=100) # 全部で100個の値
+length(theta)
+
+x <- cos(theta)
+y <- sin(theta)
+```
+
+```{r}
+plot(theta,x,type="l")
+plot(theta,y,type="l")
+```
+
+```{r}
+# 2本併せてプロット
+# x,yを併せる
+xy <- cbind(x,y) # column(列)として連結(bind)する
+matplot(xy,type="l")
+```
+
+```{r}
+plot(xy,type="l")
+```
+
+```{r}
+plot(xy,type="l",asp=TRUE) # 縦横比を合わせる
+```
+
+### ループ処理を使う。時間経過を追う
+
+#### 自己増殖
+
+細菌を増やしている。
+
+１日ごとに、10パーセント増えるという。
+２０日連続して観測する。
+
+```{r}
+# 20日分の値をストックするためのベクトルを用意する
+days <- 20
+v <- rep(0,days)
+v
+# 初日の量を決める。たとえば：
+v[1] <- 0.4
+v
+# 2日目から4日目まで計算する
+incr <- 0.1
+v[2] <- v[2] + v[2] * incr
+v
+v[3] <- v[2] + v[2] * incr
+v
+v[4] <- v[3] + v[3] * incr
+v
+```
+
+```{r}
+# 面倒くさい
+v <- rep(0,days)
+v
+v[1] <- 0.4
+v
+for(i in 2:days){
+  v[i] <- v[i-1] + v[i-1] * incr
+}
+v
+plot(v,type="b")
+```
+
+### 関数プロットの例題
+
+[京大2019年度入試第５問](https://ryamada.hatenadiary.jp/entry/20190226/1551138755#%E7%AC%AC%E4%BA%94%E5%95%8F)
+
+```{r}
+zb <- seq(from=-1,to=1,length=1000)
+
+a <- 2 * (1-abs(zb)^2)
+h <- 1-zb
+
+# a*hの最大値をもたらすzbがわかれば良い
+plot(zb,a*h,type="l")
+abline(v=-1/3)
+abline(h=max(a*h))
+```
