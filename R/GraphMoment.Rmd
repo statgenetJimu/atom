@@ -1,0 +1,365 @@
+---
+title: "GraphMomemt"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(knitr)
+library(rgl)
+library(igraph)
+knit_hooks$set(webgl = hook_webgl)
+```
+
+## グラフのモーメント
+
+### ノードペア距離とノード上関数による、グラフモーメント
+
+グラフ$G$のモーメントと言うものが定義されている。
+https://arxiv.org/pdf/1208.5615.pdf にいくつかのそれが定義されている。
+
+簡単に言うと、グラフの全ノードペアの距離$d(u,v);u,v \in V$と、ノードに付与したスカラー値 $\rho(u);u \in V$とから計算される、非負実数である。
+
+$$
+M_G^\rho = \sum_{u \in V} M_{G,u}^{\rho(u)} = \sum_{u \in V} \sum_{v \in V} d(u,v) \rho (u); u,v \in V
+$$
+グラフのノードの数で補正することもあり、それは平均距離とも呼ばれる。
+$$
+M_{G,d} = \frac{1}{|V|^2} M_G^\rho
+$$
+### ノードの次数も考慮するグラフモーメントと、その派生インデックス
+
+ノードの次数を$\rho$として用いるものや、ノードの次数からノードペア距離とは無関係に算出される値を別途、加えるインデックスなども、グラフのモーメントに関係する指数として用いることもある。
+
+特に、化合物の構造の指数として考案されたもののようである。
+
+
+
+ノード数が多くなるとモーメントも大きくなるので、それを標準化するべく、ノード数の二乗で除する場合もある。
+
+また、$\rho=1/2$とすることで、無向グラフの場合の重複カウントを補正することもある。
+
+以下では、$\rho=1$に統一して、モーメントを扱い($M_G^\rho$)、グラフのposet化との関連について検討する。
+
+```{r}
+my.graph.moment <- function(g, rho = rep(1/2,length(V(g))), standard=FALSE ){ 
+  d <- distances(g) 
+  if(standard){
+    d <- d/(length(d[,1])^2)
+  }
+  return( sum(d * rho) )
+}
+```
+## グラフ、DAG(Directed Acyclic Graph)、Poset
+
+この文書での興味は、以下の点にある。
+
+* 単純無向グラフGが、ユークリッド空間に埋め込まれている
+* Gの全情報は、頂点数$|V|$、エッジの引かれ方$E$、エッジ長情報で尽くされているものとする（閉曲面を表すグラフの場合などでは、局所の凹凸方向情報も必要となるが、今回は、それは考えないことにする）
+* このとき、自由度は、$K=\frac{|V|(|V|-1)}{2} + |E|$であろう
+* Gの隣接行列とエッジ長情報ベクトルが全て揃えば、グラフの異同を確認できるが、それでは面白く無いと考える
+* グラフの異同度を定量することを目的として、より少ない数のスカラー値のセットにて異同度を表現したい
+* 相互に（線形）非依存なK個の値の取り出し方のうち、目的に合致したものが取り出せることが望ましい
+* Gの１つの頂点をルートノード$r$として定めると、全ての頂点とルートノード間にグラフ距離が定まる。この対ルートノードグラフ距離の値の比較を持って、ポセット＄(G,r,\le)$を構成することとする
+* この$(G,r,\le)$にはモーメント$M_{(G,r,_le)}^{\rho=1}$が定まる
+* グラフGとポセット$(G,r,\le)$との違いは、ポセットのエッジがGのエッジの部分集合になっていることと、エッジに向きがあることの２点である。言い換えると、ポセットのモーメントは、Gのモーメントの一部の説明になっている
+* もしもあるポセット$(G,r_i,\le)$と別のポセット$(G,r_j,\le)$とがあって、両者を構成するエッジ$(E_{r_i},E_{r_j})$が排他的であれば、二つのポセットが説明するGのモーメントは排他的〜独立？？と言うような関係になるのでは無いだろうか
+* もしも、ある限られたポセットにより、Gのモーメントが分解して説明されたとすると、そのポセットは「固有ポセット」とでも言うようなものになる
+* なお、Gの距離行列が与えられているとき、MDSを行うことにより、ある意味、無理矢理にユークリッド空間に埋め込むこともできて、そのときの、各ノードのMDS座標は、ポセットとは別の意味での頂点間距離となっているから、それの意味についても検討することとしたい
+
+* なお、実際には$(G,r,\le)$は実数直線上の点列ともみなせるので、普通の意味での、k-次モーメントも定まる。これはグラフ情報の自由度を増やす手段としても興味深い
+
+## Rを使った実験
+
+### 実験１ 鎖状グラフ
+
+```{r}
+L <- 2
+el <- cbind(1:(L-1),2:L)
+g <- graph.edgelist(el,directed=FALSE) 
+plot(g) 
+my.graph.moment(g) 
+```
+
+```{r}
+Ls <- 2:100
+mmt.chain <- rep(0,length(Ls))
+for(i in 1:length(Ls)){ 
+  L <- Ls[i]
+  el <- cbind(1:(L-1),2:L)
+  g <- graph.edgelist(el,directed=FALSE) 
+  #plot(g) 
+  mmt.chain[i] <- my.graph.moment(g) 
+}
+plot(Ls,mmt.chain) 
+```
+
+ノード数の二乗で標準化してみる。
+```{r}
+Ls <- 2:100
+mmt.chain <- rep(0,length(Ls))
+for(i in 1:length(Ls)){ 
+  L <- Ls[i]
+  el <- cbind(1:(L-1),2:L)
+  g <- graph.edgelist(el,directed=FALSE) 
+  #plot(g) 
+  mmt.chain[i] <- my.graph.moment(g,standard=TRUE) 
+}
+plot(Ls,mmt.chain) 
+```
+
+鎖状グラフの各点を整数目盛を与え、ポセット化してやってみる。
+
+無向グラフからルートノードrを選び、無向グラフの距離行列から、ポセット条件を満足するエッジのみを残す関数を作る。
+
+```{r}
+my.poset <- function(g,r){
+  dmat <- distances(g,mode="in")
+  tmp <- dmat[r,] 
+  tmp2 <- outer(tmp,tmp,function(x,y){as.numeric(x > y )})
+  adj <- get.adjacency(g)
+  new.adj <- adj * tmp2
+  newg <- graph.adjacency(new.adj)
+  return(newg) 
+}
+```
+見てわかるように、隣接行列は、片側になっただけでほとんど変わらない。
+```{r}
+poset1 <- my.poset(g,20)
+m <- as.matrix(get.adjacency(poset1)) 
+par(mfcol=c(1,2)) 
+image(m)
+image(as.matrix(get.adjacency(g)))
+par(mfcol=c(1,1)) 
+```
+
+```{r}
+d1 <- as.matrix(distances(g))
+d2 <- as.matrix(distances(poset1)) 
+par(mfcol=c(1,2)) 
+image(d1)
+image(d2)
+par(mfcol=c(1,1)) 
+```
+ルートノードを一巡し、標準化モーメントを計算する
+```{r}
+L <- 100
+el <- cbind(1:(L-1),2:L)
+g <- graph.edgelist(el,directed=FALSE) 
+
+Ls <- 1:L
+mmt.serial.root <- rep(0,length(Ls))
+for(i in 1:length(Ls)){
+  poset <- my.poset(g,Ls[i])
+  mmt.serial.root[i] <- my.graph.moment(poset,standard=TRUE)
+}
+
+```
+```{r}
+plot(Ls,mmt.serial.root)
+```
+
+### 実験２ 円周状グラフ
+
+```{r}
+L <- 10
+el <- cbind(1:(L),c(2:L,1))
+g <- graph.edgelist(el,directed=FALSE) 
+plot(g) 
+my.graph.moment(g) 
+```
+
+```{r}
+Ls <- 2:100
+mmt.chain <- rep(0,length(Ls))
+for(i in 1:length(Ls)){ 
+  L <- Ls[i]
+  el <- cbind(1:(L),c(2:L,1))
+  g <- graph.edgelist(el,directed=FALSE) 
+  #plot(g) 
+  mmt.chain[i] <- my.graph.moment(g) 
+}
+plot(Ls,mmt.chain) 
+```
+
+ノード数の二乗で標準化してみる。
+```{r}
+Ls <- 2:100
+mmt.chain <- rep(0,length(Ls))
+for(i in 1:length(Ls)){ 
+  L <- Ls[i]
+  el <- cbind(1:(L),c(2:L,1))
+  g <- graph.edgelist(el,directed=FALSE) 
+  #plot(g) 
+  mmt.chain[i] <- my.graph.moment(g,standard=TRUE) 
+}
+plot(Ls,mmt.chain) 
+```
+
+```{r}
+poset1 <- my.poset(g,20)
+m <- as.matrix(get.adjacency(poset1)) 
+par(mfcol=c(1,2)) 
+image(m)
+image(as.matrix(get.adjacency(g)))
+par(mfcol=c(1,1)) 
+```
+
+```{r}
+d1 <- as.matrix(distances(g))
+d2 <- as.matrix(distances(poset1)) 
+par(mfcol=c(1,2)) 
+image(d1)
+image(d2)
+par(mfcol=c(1,1)) 
+```
+ルートノードを一巡し、標準化モーメントを計算する
+```{r}
+L <- 100
+el <- cbind(1:(L-1),2:L)
+g <- graph.edgelist(el,directed=FALSE) 
+
+Ls <- 1:L
+mmt.serial.root <- rep(0,length(Ls))
+for(i in 1:length(Ls)){
+  poset <- my.poset(g,Ls[i])
+  mmt.serial.root[i] <- my.graph.moment(poset,standard=TRUE)
+}
+
+```
+```{r}
+plot(Ls,mmt.serial.root)
+```
+### 実験３ 有限領域平面グラフ
+
+単位円板に乱点を発生させ、ドロネー三角化にてグラフを作る。
+
+```{r}
+library(geometry) 
+```
+
+ポセットで考える場合には、頂点間の大小関係が定まりさえすれば、その間にエッジが引かれているか引かれていないかには関係ないという性質(DAGのtransitive reduction、transitive closure)があるそうなので、単位円板に点を発生させ、完全グラフを作った上で、それを円の中心を通る直径に写像した場合の順序によりポセットを定めることとする。
+
+```{r}
+n <- 50
+rs <- runif(n)^0.5
+thetas <- runif(n) * 2 * pi
+X <- cbind(rs*cos(thetas),rs*sin(thetas))
+t <- seq(from=0,to=1,length=100)*2*pi
+plot(X,pch=20,asp=TRUE,xlim = c(-1,1),ylim=c(-1,1)) 
+points(cos(t),sin(t),type="l")
+```
+
+ドロネー三角化を介してエッジリストを作成する。
+```{r}
+library(gtools)
+my.delaunay.el <- function(X){
+  dlny <- delaunayn(X)
+  d <- length(dlny[1,])
+  cmb <- combinations(d,2)
+  el <- matrix(0,0,2)
+  for(i in 1:length(cmb[,1])){
+    el <- rbind(el,dlny[,cmb[i,]])
+  }
+  #el <- dlny[,1:2]
+  #el <- rbind(dlny[,1:2],dlny[,2:3],dlny[,c(1,3)])
+  el <- unique(t(apply(el,1,sort)))
+  return(el)
+}
+my.convhulln.el <- function(X){
+  ch <- convhulln(X) 
+  d <- length(ch[1,])
+  cmb <- combinations(d,2)
+  el <- matrix(0,0,2)
+  for(i in 1:length(cmb[,1])){
+    el <- rbind(el,ch[,cmb[i,]])
+  }
+  #el <- dlny[,1:2]
+  #el <- rbind(dlny[,1:2],dlny[,2:3],dlny[,c(1,3)])
+  el <- unique(t(apply(el,1,sort)))
+  return(el)
+}
+```
+```{r}
+el <- my.delaunay.el(X) 
+g <- graph.edgelist(el,directed=FALSE) 
+plot(g,layout=X,vertex.size=0.1,vertex.label="")
+```
+```{r}
+L <- length(V(g))
+Ls <- 1:L
+mmt.serial.root <- rep(0,length(Ls))
+for(i in 1:length(Ls)){
+  poset <- my.poset(g,Ls[i])
+  mmt.serial.root[i] <- my.graph.moment(poset,standard=TRUE)
+}
+plot(Ls,mmt.serial.root)
+```
+
+```{r}
+n <- 100
+d <- 3
+X <- matrix(rnorm(n*d),ncol=d)
+X <- X/sqrt(apply(X^2,1,sum))
+plot3d(X)
+```
+```{r}
+el <- my.convhulln.el(X) 
+g <- graph.edgelist(el,directed=FALSE) 
+plot3d(X)
+el2 <- c(t(el))
+for(i in 1:length(el[,1])){
+  segments3d(X[c(el[i,]),])
+}
+#segments3d(x=X[el2,1],y=X[el2,2],z=X[el2,3])
+#segments3d(X[el[,1],],X[el[,2],])
+```
+
+```{r}
+L <- length(V(g))
+Ls <- 1:L
+mmt.serial.root <- rep(0,length(Ls))
+for(i in 1:length(Ls)){
+  poset <- my.poset(g,Ls[i])
+  mmt.serial.root[i] <- my.graph.moment(poset,standard=TRUE)
+}
+plot(Ls,mmt.serial.root)
+```
+
+完全グラフ
+```{r}
+adj.complete <- matrix(1,n,n)
+diag(adj.complete) <- 0
+g <- graph.adjacency(adj.complete,mode="undirected") 
+plot(g,layout=X,xlim=c(-1,1),ylim=c(-1,1))
+#points(cos(t),sin(t),type="l",xlim=c(-1,1),ylim=c(-1,1))
+```
+
+
+
+
+球面に点を発生させ、凸包で三角化する作戦を次に控える。
+
+
+```{r}
+d <- 3
+n <- 10
+X <- matrix(rnorm(d*n),ncol=d)
+library(GPArotation)
+R <- Random.Start(d)
+X <- t(t(X)*c(1,2,4))
+X. <- X %*% R
+
+library(rgl)
+plot3d(X.)
+pairs(X.,asp=TRUE)
+```
+
+```{r}
+d.mat <- as.matrix(dist(X.))
+image(d.mat) 
+```
+
+```{r}
+out <- cmdscale(d.mat,k=n-1,eig=TRUE) 
+str(out)
+```

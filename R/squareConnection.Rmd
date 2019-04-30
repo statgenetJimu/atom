@@ -1,0 +1,218 @@
+---
+title: "Shapes of graph and eigen vectors"
+output: html_document
+---
+
+## Introduction
+
+The shapes should affect on the eigen vectors.
+
+We expect that the symmetricity should strongly affect on the appearance of eigen vectors along with their corresponding eigen values.
+
+
+## Plans
+
+* Make a simple graph and calculate their eigen vectors.
+* Combine/Connect multiple simple graphs and calculate their eigen vectors.
+* Attempt to identify relation between eigen vectors and the connection pattern.
+* Initially we should start flat grphs, so that we can relatively easily identify the rules if any.
+基本形ltticeを作成（座標とグラフオブジェクトとしての情報）
+
+
+## Strategies
+
+* Generate latties
+* Connect lattices
+* Eigen-decompose their adj matrices
+* Color the graph with eigen vector element values
+
+## Utility functions
+```{r setup, include=FALSE}
+library(knitr)
+library(rgl)
+knit_hooks$set(webgl = hook_webgl)
+```
+
+```{r}
+my.col.st <- function(x,N=5){
+  floor((x-min(x))/(max(x)-min(x)) * 0.99 * N)+1
+}
+
+my.color.point <- function(X,col,cex=0.5){
+  n <- length(unique(col))
+  ucol <- unique(col)
+  for(i in 1:n){
+    tmp <- which(col==ucol[i])
+    points(X[tmp,],pch=20,col=ucol[i],cex=cex)
+  }
+}
+my.color.sphere <- function(X,col,radius=1){
+  n <- length(unique(col))
+  ucol <- unique(col)
+  for(i in 1:n){
+    tmp <- which(col==ucol[i])
+    spheres3d(X[tmp,],color=ucol[i],radius=radius)
+  }
+}
+
+```
+
+### Lattice in the shape of regtangle
+```{r}
+my.rect.lattice <- function(xy){
+  X <- 0:xy[1]
+  Y <- 0:xy[2]
+  XY <- as.matrix(expand.grid(X,Y))
+  n <- length(XY[,1])
+  d <- as.matrix(dist(XY,method="manhattan"))
+  adj <- matrix(0,length(d[1,]),length(d[,1]))
+  adj[which(d==1)] <- 1
+  return(list(X=XY,n=n,adj=adj))
+}
+xy <- c(50,50)
+out <- my.rect.lattice(xy)
+plot(out$X,pch=20,cex=0.001)
+```
+
+## Connect two squares for example with only one shared vertex
+
+### Two same size squares
+```{r}
+xy <- c(25,25)
+out <- my.rect.lattice(xy)
+plot(out$X,pch=20,cex=0.001)
+X2 <- rbind(out$X,out$X + 25)
+plot(X2)
+adj <- matrix(0,out$n*2-1,out$n*2-1)
+adj[1:out$n,1:out$n] <- out$adj
+adj[out$n:(2*out$n-1),out$n:(2*out$n-1)] <- out$adj
+eigen.out <-eigen(adj)
+```
+```{r}
+p <- 1 
+col <- my.col.st(eigen.out[[2]][,p],N=5)
+plot(X2,pch=20,cex=0.0001)
+my.color.point(X2,col,cex=1)
+```
+
+Plot series of eigen vectors
+```{r}
+for(i in 1:20){
+  col <- my.col.st(eigen.out[[2]][,i],N=5)
+  plot(X2,pch=20,cex=0.0001,main=paste(i, "-st"))
+  my.color.point(X2,col,cex=1)
+}
+```
+
+
+### Two different size squares
+```{r}
+xy1 <- c(35,35)
+xy2 <- c(15,15)
+out1 <- my.rect.lattice(xy1)
+out2 <- my.rect.lattice(xy2)
+#plot(out$X,pch=20,cex=0.001)
+X2 <- rbind(out1$X,out2$X + 35)
+#plot(X2)
+adj <- matrix(0,out1$n+out2$n-1,out1$n+out2$n-1)
+adj[1:out1$n,1:out1$n] <- out1$adj
+adj[out1$n:(out1$n+out2$n-1),out1$n:(out1$n+out2$n-1)] <- out2$adj
+eigen.out <-eigen(adj)
+```
+```{r}
+p <- 1 
+col <- my.col.st(eigen.out[[2]][,p],N=5)
+plot(X2,pch=20,cex=0.0001)
+my.color.point(X2,col,cex=1)
+```
+
+Plot series of eigen vectors
+```{r}
+for(i in 1:20){
+  col <- my.col.st(eigen.out[[2]][,i],N=5)
+  plot(X2,pch=20,cex=0.0001,main=paste(i, "-st"))
+  my.color.point(X2,col,cex=1)
+}
+```
+
+
+### Two same size squares but one square's tip is connected to a point inside of the other square
+
+```{r}
+xy <- c(25,25)
+out <- my.rect.lattice(xy)
+plot(out$X,pch=20,cex=0.001)
+
+adj <- matrix(0,out$n*2-1,out$n*2-1)
+
+adj[out$n:(2*out$n-1),out$n:(2*out$n-1)] <- out$adj
+#adj[out$n,out$n] <- 0
+s <- sample(1:out$n,1)
+ss <- 1:out$n
+ss[s] <- out$n
+ss[out$n] <- s
+adj[ss,ss] <- out$adj
+```
+```{r}
+eigen.out <-eigen(adj)
+```
+```{r,webgl=TRUE}
+X. <- cbind(out$X,rep(0,out$n))
+X.[,1] <- X.[,1] - out$X[s,1]
+X.[,2] <- X.[,2] - out$X[s,2]
+
+X.. <- cbind(rep(0,out$n),out$X %*% matrix(c(1,-1,1,1)*1/sqrt(2),2,2))
+X2 <- rbind(X.,X..)
+p <- 1
+col <- my.col.st(eigen.out[[2]][,p],N=5)
+plot3d(X2) 
+my.color.sphere(X2,col)
+```
+
+```{r}
+p <- 1 
+col <- my.col.st(eigen.out[[2]][,p],N=5)
+plot(X2,pch=20,cex=0.0001)
+my.color.point(X2,col,cex=1)
+```
+
+Plot series of eigen vectors
+```{r}
+for(i in 1:20){
+  col <- my.col.st(eigen.out[[2]][,i],N=5)
+  plot(X2,pch=20,cex=0.0001,main=paste(i, "-st"))
+  my.color.point(X2,col,cex=1)
+}
+```
+
+
+### Teo different size squares
+```{r}
+xy1 <- c(35,35)
+xy2 <- c(15,15)
+out1 <- my.rect.lattice(xy1)
+out2 <- my.rect.lattice(xy2)
+#plot(out$X,pch=20,cex=0.001)
+X2 <- rbind(out1$X,out2$X + 35)
+#plot(X2)
+adj <- matrix(0,out1$n+out2$n-1,out1$n+out2$n-1)
+adj[1:out1$n,1:out1$n] <- out1$adj
+adj[out1$n:(out1$n+out2$n-1),out1$n:(out1$n+out2$n-1)] <- out2$adj
+eigen.out <-eigen(adj)
+```
+```{r}
+p <- 1 
+col <- my.col.st(eigen.out[[2]][,p],N=5)
+plot(X2,pch=20,cex=0.0001)
+my.color.point(X2,col,cex=1)
+```
+
+Plot series of eigen vectors
+```{r}
+for(i in 1:20){
+  col <- my.col.st(eigen.out[[2]][,i],N=5)
+  plot(X2,pch=20,cex=0.0001,main=paste(i, "-st"))
+  my.color.point(X2,col,cex=1)
+}
+```
+
