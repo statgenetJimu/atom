@@ -1,0 +1,240 @@
+---
+title: "三角メッシュグラフのゼータ関数エッジ表現と置換行列"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(igraph)
+library(rgl)
+```
+
+## 例：２つの正四面体の張り合わせでできた、三角メッシュ
+
+正四面体は、頂点数４、辺数６、面数４。
+
+２つの正四面体の底面三角形同士を張り合わせると、頂点数５、辺数９、面数６の凸多面体ができる。
+
+
+
+### 道具立て
+
+少し、工夫をして、この頂点数５の凸多面体を作っておく。
+
+```{r}
+library(igraph)
+my.tri4 <- function(name="hoge"){
+  el <- rbind(c(1,2),c(1,3),c(1,4),c(2,3),c(3,4),c(4,2))
+  el <- matrix(paste(name,el,sep=""),ncol=2)
+  g <- graph.edgelist(el,directed=FALSE)
+  faces <- rbind(c(1,2,3),c(1,3,4),c(1,4,2),c(2,4,3))
+  faces <- matrix(paste(name,faces,sep=""),ncol=3)
+
+  return(list(g=g,faces=faces))
+}
+my.tri8 <- function(name="hoge"){
+  el <- rbind(c(1,2),c(1,3),c(1,4),c(1,5),c(2,3),c(3,4),c(4,5),c(2,5),c(2,6),c(3,6),c(4,6),c(5,6))
+  el <- matrix(paste(name,el,sep=""),ncol=2)
+  g <- graph.edgelist(el,directed=FALSE)
+  faces <- rbind(c(1,2,3),c(1,3,4),c(1,4,5),c(1,5,2),c(3,2,6),c(4,3,6),c(4,6,5),c(2,5,6))
+  faces <- matrix(paste(name,faces,sep=""),ncol=3)
+  return(list(g=g,faces=faces))
+}
+my.tri20 <- function(name="hoge"){
+  el <- rbind(c(1,2),c(1,3),c(1,4),c(1,5),c(1,6),c(2,3),c(3,4),c(4,5),c(5,6),c(2,6),c(2,7),c(6,7),c(2,8),c(3,8),c(3,9),c(4,9),c(4,10),c(5,10),c(5,11),c(6,11),c(7,8),c(8,9),c(9,10),c(10,11),c(7,11),c(7,12),c(8,12),c(9,12),c(10,12),c(11,12))
+  el <- matrix(paste(name,el,sep=""),ncol=2)
+  g <- graph.edgelist(el,directed=FALSE)
+  faces <- rbind(c(1,2,3),c(1,3,4),c(1,4,5),c(1,5,6),c(1,6,2),c(3,2,7),c(4,3,8),c(5,4,9),c(6,5,10),c(2,6,11),c(2,11,7),c(3,7,8),c(4,8,9),c(5,9,10),c(6,10,11),c(8,7,12),c(9,8,12),c(10,9,12),c(11,10,12),c(7,11,12))
+  faces <- matrix(paste(name,faces,sep=""),ncol=3)
+
+  return(list(g=g,faces=faces))
+}
+
+# g1の第i三角形とg2の第j三角形をはり合わせる
+
+my.paste.g <- function(g1,g2,u,v){
+  f1 <- g1$faces[u,]
+  f2 <- g2$faces[v,]
+  el1 <- get.edgelist(g1$g) 
+  el2 <- get.edgelist(g2$g) 
+  for(i in 1:length(f1)){
+    el1[which(el1==f1[i])] <- f2[i]
+  }
+  new.el <- rbind(el1,el2)
+  new.el <- t(apply(new.el,1,sort))
+  new.el <- unique(new.el)
+  newg <- graph.edgelist(new.el,directed=FALSE)
+  new.faces <- rbind(g1$faces[-u,],g2$faces[-v,3:1]) 
+  for(i in 1:length(f1)){
+    new.faces[which(new.faces==f1[i])] <- f2[i]
+  }
+  return(list(g=newg,faces=new.faces))
+}
+```
+
+## オブジェクトを作成
+
+```{r}
+g4A <- my.tri4("A")
+plot(g4A$g) # 正四面体
+g4B <- my.tri4("B")
+# 正四面体の張り合わせ
+gx <- my.paste.g(g4A,g4B,1,1) 
+
+# 張り合わせオブジェクト
+plot(gx$g,layout=layout_in_circle)
+# 張り合わせオブジェクトの６つの三角形
+gx$faces
+```
+
+
+双対グラフの各面を時計回りに回るときのエッジ接続行列は置換行列
+
+反時計回りに回るときのエッジ接続行列も置換行列
+
+
+次数３の斉次グラフなので、このふたつの置換行列の和はゼータ関数を構成するWE行列。
+
+反時計回り置換行列は、時計回り置換行列を転置し、それについて、エッジペアを定める行列Pでサンドイッチ変換することで得られる。
+
+また、時計回り置換行列と反時計回り置換行列とを、行にのみP処理したもの、列にのみP処理したもの、行と列とにP処理したものとを加算したとき、3k x 3k行列には、双対グラフの頂点に関して、対角成分以外を１とする行列があらわれる。
+
+したがって、
+
+時計回りの置換行列とPとですべてが決まる。
+
+また、3k x 3k にした行列の重複パターンに、形の情報が収まっている可能性がある。
+
+```{r}
+W.clock <- matrix(0,18,18)
+W.clock[1,2] <- W.clock[2,3] <- W.clock[3,1] <- W.clock[4,5] <- W.clock[5,6] <- W.clock[6,11] <- W.clock[7,8] <- W.clock[8,14] <- W.clock[9,16] <- W.clock[10,9] <- W.clock[11,4] <- W.clock[12,15] <- W.clock[13,10] <- W.clock[14,7] <- W.clock[15,17] <- W.clock[16,13] <- W.clock[17,18] <- W.clock[18,12] <- 1
+apply(W.clock,1,sum)
+apply(W.clock,2,sum)
+```
+```{r}
+P <- diag(rep(1,18))
+P <- P[,c(10:18,1:9)]
+P
+```
+```{r}
+W.counter <- P %*% t(W.clock) %*% P
+```
+```{r}
+We <- W.clock + W.counter
+image(We)
+
+range(W.clock - t(P%*% W.counter %*%P))
+We. <- W.clock + P %*% W.counter %*% P
+image(We.)
+range(We.-t(We.))
+```
+
+```{r}
+Vs <- list()
+Vs[[1]] <- c(1,2,3)
+Vs[[2]] <- c(4,5,6,11)
+Vs[[3]] <- c(7,8,14)
+Vs[[4]] <- c(10,9,16,13)
+Vs[[5]] <- c(18,12,15,17)
+```
+```{r}
+for(i in 1:length(Vs)){
+  print(We[Vs[[i]],Vs[[i]]])
+}
+```
+```{r}
+Vs2 <- list()
+Vs2[[1]] <- c(1,2,4)
+Vs2[[2]] <- c(4,5,7)
+Vs2[[3]] <- c(7,8,9)
+Vs2[[4]] <- c(5,6,8)
+Vs2[[5]] <- c(1,3,9)
+Vs2[[6]] <- c(2,3,6)
+for(i in 1:length(Vs2)){
+  #Vs2[[i]] <- c(Vs2[[i]],Vs2[[i]]+9)
+}
+```
+```{r}
+We.. <- W.clock + P %*% W.clock %*% P + W.counter + P %*% W.counter %*% P + P %*% W.clock + P %*% W.counter + W.clock %*% P + W.counter %*% P
+
+for(i in 1:length(Vs2)){
+  print(We..[Vs2[[i]],Vs2[[i]]])
+}
+```
+
+```{r}
+eigen(We.)
+```
+
+この三角メッシュグラフの双対グラフの辺接続行列を作ることにする。
+
+```{r}
+Fs <- gx$faces
+my.edgepair <- function(g){
+  el <- get.edgelist(g)
+  el2 <- cbind(el[,2],el[,1])
+  elA <- apply(el,1,paste,collapse="")
+  elB <- apply(el2,1,paste,collapse="")
+  return(rbind(cbind(elA,elB),cbind(elB,elA)))
+}
+my.edgepair(gx$g)
+my.Edge.Connection <- function(gx){
+  el.pair <- my.edgepair(gx$g)
+  Fs <- gx$faces
+  
+  el1 <- apply(Fs[,1:2],1,paste,collapse="")
+  el2 <- apply(Fs[,2:3],1,paste,collapse="")
+  el3 <- apply(Fs[,c(3,1)],1,paste,collapse="")
+  
+  el <- rbind(cbind(el1,el2),cbind(el2,el3),cbind(el3,el1),cbind(el2,el1),cbind(el3,el2),cbind(el1,el3))
+  
+  G <- graph.edgelist(el)
+  ord1 <- order(G[]@Dimnames[[1]])
+  W.clock <- G[ord1,ord1]
+  
+  tmp.g <- graph.edgelist(el.pair,directed=TRUE)
+  P <- tmp.g[]
+  ord2 <- order(P@Dimnames[[1]])
+  P <- P[ord2,ord2]
+  
+  Fs <- Fs[,3:1]
+  
+  el1 <- apply(Fs[,1:2],1,paste,collapse="")
+  el2 <- apply(Fs[,2:3],1,paste,collapse="")
+  el3 <- apply(Fs[,c(3,1)],1,paste,collapse="")
+  
+  el <- rbind(cbind(el1,el2),cbind(el2,el3),cbind(el3,el1))
+  
+  G.counter <- graph.edgelist(el)
+  ord.counter1 <- order(G.counter[]@Dimnames[[1]])
+  W.counter <- G.counter[ord.counter1,ord.counter1]
+  return(list(g.clock=G,g.counter=G.counter,W.clock=W.clock,W.counter=W.counter,P=P,edge.pair=el.pair))
+}
+```
+
+```{r}
+G <- my.Edge.Connection(gx)
+G$g.clock[]
+G$g.counter[]
+G$W.clock
+G$W.counter
+G$P 
+G$edge.pair
+```
+
+```{r}
+G.counter.switch <- G$P %*% G$W.counter %*% G$P
+G.counter.switch
+```
+
+```{r}
+We <- G$W.clock + G.counter.switch
+range(as.matrix(We) - t(as.matrix(We)))
+```
+
+```{r}
+apply(We,1,sum)
+apply(We,2,sum)
+```
+## 双対グラフの作成
+
