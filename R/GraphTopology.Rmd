@@ -1,0 +1,183 @@
+---
+title: "グラフ上円板の包含関係の量的特性"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(igraph)
+```
+
+## グラフとトポロジー
+
+グラフ$G$が次のように与えられたとする。
+
+$$
+G = (V,E)\\
+V = \{v_i\}\\
+E = \{e_i\}
+$$
+
+このとき、$V$の部分集合として次のようなものを取り上げる。
+
+$$
+\sigma_i(l) = \{v_j | d(v_i,v_j) \le l\}
+$$
+
+$\forall i, \sigma_i(0) = \{v_i\}$が成り立つとともに
+
+$$
+\forall i, \sigma_i(L_i) = V
+$$
+ただし、$L_i$は$v_i$から最も遠い点までのグラフ距離のこととする。
+
+また、空集合$\phi= \{\} = \sigma_i(-1)$も対象に含める。
+
+この部分集合全体を
+$$
+\Omega = \{\phi,\sigma_1(0),\sigma_2(0),...,\sigma_{|V|}(0),...,\sigma_1(L_1),...\sigma_{|V|}(L_{|V|}),V\}
+$$
+
+この$\Omega$の要素間には、以下のような自明な包含関係が存在する。
+
+$$
+\forall i,
+\phi= \sigma_i(-1) \subseteq \sigma_i(0) \subseteq ... \subseteq \sigma_i(L_i)=V
+$$
+
+異なるノード$v_i,v_j$を起点とする部分集合同士にも包含関係が存在しえます。
+
+次のような関係は定義から認められます。
+
+$$
+\sigma_i(a) \subseteq \sigma_j(d(i,j) + a) 
+$$
+ただし、$d(i,j)$は$v_i,v_j$間のグラフ距離とします。
+
+しかしながら、次のような包含関係はないでしょうか？
+
+$$
+\sigma_i(a) \subseteq \sigma_j(d(i,j) + b) \subset \sigma_j(d(i,j) + a)\\
+b < a
+$$
+
+もしこのような$b$が存在するとすると、この$b$の値は何かしらグラフの包含関係の情報を担っている値のように思われます。
+
+そして、グラフを幾何的な存在とみなしたときには、$b$は形の情報を有しているかもしれません。
+
+次のような定義を定めて、このことについて考えてみることにします。
+
+$$
+b_{i,j}^a = argmin_b \;(\sigma_i(a) \subseteq \sigma_j(d(i,j)+b))
+$$
+
+## Rでやってみる
+
+```{r}
+#g <- sample_k_regular(1000, 3)
+g <- erdos.renyi.game(100, 1/10)
+#plot(g)
+A <- g[]
+d <- distances(g)
+#image(cor(d))
+```
+
+```{r}
+range(cor(d))
+heatmap(d)
+```
+```{r}
+image(as.matrix(A))
+image(as.matrix(d))
+plot(hclust(as.dist(d)))
+```
+
+まず、包含関係を作る
+
+```{r}
+library(sets)
+sbst <- list()
+for(i in 1:length(V(g))){
+  sbst[[i]] <- list()
+  for(j in 0:max(d[i,])){
+    sbst[[i]][[j+1]] <- as.set(which(d[i,]<=j))
+  }
+}
+
+```
+```{r}
+sbst[[1]][[2]] < sbst[[1]][[5]]
+```
+
+```{r}
+n.sbst <- sum(sapply(sbst,length))
+```
+```{r}
+sbst.incl <- matrix(0,n.sbst,n.sbst)
+cnt1 <- 0
+for(i in 1:length(sbst)){
+  for(j in 1:length(sbst[[i]])){
+    cnt1 <- cnt1 + 1
+    cnt2 <- 0
+    for(i2 in 1:length(sbst)){
+      for(j2 in 1:length(sbst[[i2]])){
+        cnt2 <- cnt2 + 1
+        sbst.incl[cnt1,cnt2] <- as.numeric(sbst[[i]][[j]] < sbst[[i2]][[j2]])
+        
+      }
+    }
+  }
+}
+image(sbst.incl)
+```
+```{r}
+g2 <- graph.adjacency(sbst.incl)
+plot(g2,layout=layout.kamada.kawai(g2))
+```
+
+```{r}
+eigen.out <- eigen(sbst.incl)
+plot(eigen.out[[1]])
+```
+```{r}
+image(sbst.incl)
+is.connected(g2)
+```
+
+```{r}
+plot(d[1,],d[10,])
+```
+
+```{r}
+out <- list()
+maxd <- max(d)
+
+```
+
+```{r}
+library(devtools)
+#install_github("ryamada22/Ronlyryamada")
+library(Ronlyryamada)
+library(RFOC)
+library(rgl)
+library(igraph)
+```
+```{r}
+n <- 5
+k <- 5
+n.mesh <- 16
+A. <- matrix(runif(n^2), n, n)
+A.[1, 1] <- k
+B <- matrix(rnorm(n^2), n, n)
+xxx <- my.spherical.harm.mesh(A = A., B = B, n = n.mesh)
+plot3d(xxx$v)
+segments3d(xxx$v[c(t(xxx$edge)), ])
+```
+```{r}
+g <- graph.edgelist(xxx$edge,directed=FALSE)
+edge.length <- sqrt(apply((xxx$v[xxx$edge[,1],] - xxx$v[xxx$edge[,2],])^2 ,1,sum))
+d <- distances(g,weights=edge.length)
+```

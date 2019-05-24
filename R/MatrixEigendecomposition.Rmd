@@ -1,0 +1,365 @@
+---
+title: "Rで行列・固有値分解：実固有値編"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## 行列計算の復習
+
+行列を作る
+
+```{r}
+x <- 1
+y <- 2
+z <- 0.5
+w <- 1.5
+M <- matrix(c(x,y,z,w),2,2)
+M
+```
+
+```{r}
+eigen(M)
+```
+
+これがどういう行列だったかと言うと
+
+* (1,0) -> (x,y)
+* (0,1) -> (z,w)
+
+確かめる
+
+```{r}
+v1 <- c(1,0)
+M %*% v1
+v2 <- c(0,1)
+M %*% v2
+```
+
+この検算は一括して行える
+
+```{r}
+v12 <- cbind(v1,v2)
+v12
+```
+```{r}
+M %*% v12
+```
+
+v12 は単位行列
+
+単位行列は簡単に作れる
+
+```{r}
+I <- diag(c(1,1)) # 対角成分を引数で指定する
+I
+```
+
+Mが起こす変化を図にしてみる
+
+```{r}
+v3 <- rnorm(2) # 2つの乱数(正規分布に従う正規乱数)を発生させて、適当な点をとる
+plot(v3[1],v3[2],xlim=c(-5,5),ylim=c(-5,5)) # xlim,ylimはx軸,y軸の範囲を指定する
+abline(h=0) # y=0 の水平(horizontal)線を引く
+abline(v=0) # x=0 の鉛直(vertical)線を引く
+```
+
+v3にMを作用させる(移動させる)
+```{r}
+v3. <- M %*% v3
+v3.
+```
+
+合わせてプロットする
+
+```{r}
+plot(v3[1],v3[2],xlim=c(-5,5),ylim=c(-5,5)) # xlim,ylimはx軸,y軸の範囲を指定する
+abline(h=0) # y=0 の水平(horizontal)線を引く
+abline(v=0) # x=0 の鉛直(vertical)線を引く
+points(v3.[1],v3.[2],col=2)
+segments(v3[1],v3[2],v3.[1],v3.[2])
+```
+
+多数の点をまとめて移動させてみる
+
+```{r}
+p.pt <- 200
+X <- seq(from=-4,to=4,length=p.pt)
+Y <- (X + 2) * (X - 1)
+plot(X,Y,type="b")
+abline(h=0)
+abline(v=0)
+```
+
+まとめてMを作用させてみる
+
+各列が座標ならよいから、Xを１行目(１段目)、Yを２行目(２段目)にしたXYを作る
+```{r}
+XY <- rbind(X,Y)
+XY[,1:5] # 初めの５点だけ見ておく
+dim(XY)
+```
+
+```{r}
+XY. <- M %*% XY
+plot(X,Y,type="b",xlim=c(-5,5),ylim=c(-5,5))
+abline(h=0)
+abline(x=0)
+points(XY.[1,],XY.[2,],col=2,type="b")
+```
+
+どの点がどの点に動いたのか示しておく
+
+```{r}
+XY. <- M %*% XY
+plot(X,Y,type="b",xlim=c(-5,5),ylim=c(-5,5))
+abline(h=0)
+abline(x=0)
+points(XY.[1,],XY.[2,],col=2,type="b")
+segments(X,Y,XY.[1,],XY.[2,])
+```
+
+たくさん動いた点と、ほとんど動かない点とがある
+
+## 固有値・固有ベクトルの復習
+
+行列$M$の固有値と固有ベクトルは、以下の式を満たす$\lambda$と$x$のこと
+$$
+Mx = \lambda x
+$$
+
+Rでは以下のようにして、固有値と固有ベクトルを計算する
+
+```{r}
+eigen.out <- eigen(M)
+eigen.out
+```
+
+固有値は
+```{r}
+eigen.out$values # またはeigen.out[[1]]
+```
+
+固有ベクトルは
+```{r}
+eigen.out$vectors # またはeigen.out[[2]]
+```
+
+### 検算
+
+$$
+Mx = \lambda x
+$$
+
+検算してみる
+
+```{r}
+M %*% eigen.out$vectors[,1] 
+eigen.out$values[1] * eigen.out$vectors[,1]
+```
+```{r}
+M %*% eigen.out$vectors[,2] 
+eigen.out$values[2] * eigen.out$vectors[,2]
+```
+
+２つの固有値・２つの固有ベクトルを一括して検算することもできる
+
+```{r}
+M %*% eigen.out$vectors
+eigen.out$values[1] * eigen.out$vectors[,1]
+eigen.out$values[2] * eigen.out$vectors[,2]
+```
+
+固有値を対角成分に持つ対角行列を使えばもっと簡単に検算できる
+
+```{r}
+S <- diag(eigen.out$values)
+S # 固有値の対角行列
+S %*% eigen.out$vectors
+```
+```{r}
+M %*% eigen.out$vectors
+```
+
+
+## 固有ベクトルを図示する
+
+固有ベクトルが意味するのは、「固有」な方向(直線)
+
+その方向(直線)上の点は、固有値倍される
+
+確かめる
+```{r}
+k <- rnorm(1) # 適当な数
+k
+M %*% (k * eigen.out$vectors[,1])
+k * eigen.out$values[1] * eigen.out$vectors[,1]
+```
+
+固有ベクトルが意味する方向(直線)を図示する
+
+その直線は、原点を通り、傾きが
+```{r}
+sl1 <- eigen.out$vectors[2,1]/eigen.out$vectors[1,1] # ベクトル(x,y)の傾きはy/x
+sl2 <- eigen.out$vectors[2,2]/eigen.out$vectors[1,2]
+# sl12 <- eigen.out$vectors[2,]/eigen.out$vectors[1,]として、２つの傾きを一回で計算することもできる
+sl1
+sl2
+```
+```{r}
+plot(0,0,xlim=c(-5,5),ylim=c(0,0))
+abline(h=0)
+abline(v=0)
+abline(0,sl1,col=3) # y切片 = 0,傾きsl1の直線を色番号3で引く
+abline(0,sl2,col=4)
+```
+
+## 点の移動を表すプロットと、固有ベクトル方向直線を併せてプロットする
+
+```{r}
+plot(X,Y,type="b",xlim=c(-5,5),ylim=c(-5,5))
+abline(h=0)
+abline(x=0)
+points(XY.[1,],XY.[2,],col=2,type="b")
+segments(X,Y,XY.[1,],XY.[2,])
+abline(0,sl1,col=3)
+abline(0,sl2,col=4)
+```
+
+点の移動の様子を、関数上の点に限らず図示する
+
+```{r}
+n.pt <- 500
+X <- runif(n.pt,min=-5,max=5)
+Y <- runif(n.pt,min=-5,max=5)
+plot(X,Y)
+```
+```{r}
+XY <- rbind(X,Y)
+XY. <- M %*% XY
+plot(X,Y,xlim=c(-5,5),ylim=c(-5,5))
+points(XY.[1,],XY.[2,],col=2)
+segments(X,Y,XY.[1,],XY.[2,])
+abline(h=0)
+abline(x=0)
+abline(0,sl1,col=3,lw=5)
+abline(0,sl2,col=4,lw=5)
+```
+
+### 固有値分解の「分解」という意味
+
+```{r}
+V <- eigen.out$vectors
+S <- diag(eigen.out$values)
+S
+V.inv <- solve(V)
+V %*% V.inv
+V.inv %*% V
+```
+
+分解されている
+
+```{r}
+V %*% S %*% V.inv
+M
+```
+
+固有値はMの重要な情報
+
+重要な情報は対角成分に集約される
+
+```{r}
+sum(S) # 固有値分解で取り出した対角行列
+sum(eigen.out$values) # sum(S)と同じこと
+M
+diag(M)
+sum(diag(M)) # Mのトレース
+```
+
+行列式も大事な情報
+
+それは固有値の積
+```{r}
+det(M)
+prod(eigen.out$values)
+```
+
+これはたまたま起きることではない
+
+```{r}
+d <- 100 # d x d 行列
+M2 <- matrix(rnorm(d^2),d,d)
+eigen.out2 <- eigen(M2)
+sum(eigen.out2$values)
+sum(diag(M2))
+prod(eigen.out2$values)
+det(M2)
+```
+
+
+## 固有値が複素数の場合
+
+$$
+M = V S V^{-1}
+$$
+ただし、Sは対角行列
+
+というとき、Sの対角成分は複素数でもよい
+
+$M$の成分が実数であるためには、共役複素数である必要はある
+
+```{r}
+lambda1 <- 0.5 + 1i * 0.7
+lambda1
+lambda2 <- Conj(lambda1) # 共役複素数
+lambda2
+S <- diag(c(lambda1,lambda2))
+S
+```
+
+固有ベクトルも成分同士が共役にすると、$Mc$は実数行列になる
+```{r}
+eigen.v1 <- c(rnorm(1)+1i*rnorm(1),rnorm(1)+1i*rnorm(1))
+eigen.v2 <- Conj(eigen.v1)
+eigen.v1
+eigen.v2
+V <- cbind(eigen.v1,eigen.v2)
+V.inv <- solve(V)
+V
+V.inv
+V %*% V.inv
+```
+
+```{r}
+M <- V %*% S %*% V.inv
+M
+```
+
+固有値分解しなおす
+
+```{r}
+eigen.out <- eigen(M)
+eigen.out
+```
+
+固有値は指定したものそのもの
+
+固有ベクトルは様子が違う
+
+```{r}
+S
+eigen.out$values
+```
+```{r}
+V
+eigen.out$vectors
+```
+
+ただし、固有ベクトルは「定数倍」しても意味に変わりはないから、確認してみると、確かに、定数倍(ただし、複素数)になっている
+
+```{r}
+eigen.out$vectors / V
+```
+

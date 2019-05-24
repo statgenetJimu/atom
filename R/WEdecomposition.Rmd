@@ -88,16 +88,35 @@ gx$faces
 ```
 
 
-双対グラフの各面を時計回りに回るときのエッジ接続行列は置換行列
+双対グラフの各面を時計回りに回るときのエッジ接続行列$W_{clock}$は置換行列
 
-反時計回りに回るときのエッジ接続行列も置換行列
+反時計回りに回るときのエッジ接続行列$W_{counter}$も置換行列
 
 
-次数３の斉次グラフなので、このふたつの置換行列の和はゼータ関数を構成するWE行列。
+次数３の斉次グラフなので、このふたつの置換行列の和はゼータ関数を構成するWE行列, $W_E = W_{clock} + W_{counter}$。
 
 反時計回り置換行列は、時計回り置換行列を転置し、それについて、エッジペアを定める行列Pでサンドイッチ変換することで得られる。
+$$
+W_{counter} = P W_{clock} P
+$$
 
 また、時計回り置換行列と反時計回り置換行列とを、行にのみP処理したもの、列にのみP処理したもの、行と列とにP処理したものとを加算したとき、3k x 3k行列には、双対グラフの頂点に関して、対角成分以外を１とする行列があらわれる。
+
+$$
+Q = W_{clock} + P W_{clock} P + P W_{clock} + W_{clock} P + W_{counter} + P W_{counter} P + P W_{counter} + W_{counter} P \\
+= W_E + P W_E P + P W_E + W_E P
+$$
+
+としたとき
+$$
+Q[1:3k,1:3k]
+$$
+は対角部分に
+$$
+\begin{pmatrix} 0, 1, 1 \\ 1,0,1\\ 1,1,0 \end{pmatrix}
+$$
+が互いに重複しながら並ぶ。
+
 
 したがって、
 
@@ -128,6 +147,13 @@ We. <- W.clock + P %*% W.counter %*% P
 image(We.)
 range(We.-t(We.))
 ```
+伊原のゼータ関数に関連して
+$$
+det(I - (u W_{clock} + v W_{clock}))
+$$
+というような母関数も面白いかもしれない。
+
+
 
 ```{r}
 Vs <- list()
@@ -161,9 +187,92 @@ for(i in 1:length(Vs2)){
   print(We..[Vs2[[i]],Vs2[[i]]])
 }
 ```
+```{r}
+image(We..)
+```
+
+```{r}
+eigen(We..)
+```
 
 ```{r}
 eigen(We.)
+```
+
+
+このぐらふのオリジナルぐらふの辺接続行列は
+```{r}
+Z <- matrix(0,18,18)
+Z[1,4] <- Z[1,7] <- Z[1,18] <- 1
+Z[2,c(13,14,15)] <- 1
+Z[3,c(6,8,9)] <- Z[4,c(11,14,15)] <- Z[5,c(11,13,15)] <- Z[6,c(11,13,14)] <- 1
+Z[7,c(5,17)] <- Z[8,c(5,16)] <- Z[9,c(4,7,10)] <- 1
+Z[10,c(2,3)] <- Z[11,c(1,3)] <- Z[12,c(1,2)] <- Z[13,c(7,10,18)] <- Z[14,c(16,17)] <- 1
+Z[15,c(8,9,12)] <- Z[16,c(4,10,18)] <- Z[17,c(6,9,12)] <- Z[18,c(6,8,12)] <- 1
+```
+```{r}
+sum(Z)
+```
+
+```{r}
+eigen(Z)
+```
+```{r}
+eigen(We)
+```
+
+```{r}
+We.Z <- We %*% solve(Z)
+Z.We <- Z %*% solve(We)
+We.Z2 <- solve(Z) %*% We
+Z.We2 <- solve(We) %*% Z
+WexZ <- We %*% Z
+ZxWe <- Z %*% We
+```
+
+```{r}
+image(We.Z)
+image(We.Z2)
+image(Z.We)
+image(Z.We2)
+image(WexZ)
+image(ZxWe)
+```
+```{r}
+We.Z
+We.Z2
+Z.We
+Z.We2
+WexZ
+ZxWe
+```
+```{r}
+apply(We.Z,1,sum)
+apply(We.Z,2,sum)
+apply(We.Z2,1,sum)
+apply(We.Z2,2,sum)
+apply(Z.We,1,sum)
+apply(Z.We,2,sum)
+apply(Z.We2,1,sum)
+apply(Z.We2,2,sum)
+apply(WexZ,1,sum)
+apply(WexZ,2,sum)
+apply(ZxWe,1,sum)
+apply(ZxWe,2,sum)
+```
+```{r}
+sum(We.Z)
+sum(We.Z2)
+sum(Z.We)
+sum(Z.We2)
+sum(WexZ)
+sum(ZxWe)
+```
+
+
+```{r}
+Z %*% solve(We)
+```
 ```
 
 この三角メッシュグラフの双対グラフの辺接続行列を作ることにする。
