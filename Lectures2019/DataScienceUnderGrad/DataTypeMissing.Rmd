@@ -1,0 +1,4 @@
+---
+title: "データの型・タイプ・欠測値・データの取得方法"
+output: html_document
+---
