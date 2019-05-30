@@ -1,4 +1,6 @@
 ---
 title: "実験データの取得・大規模試験データの収集"
-output: html_document
+output: 
+  html_document:
+    keep_md: true
 ---
