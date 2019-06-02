@@ -1,0 +1,71 @@
+---
+title: "GEOからのデータの取得"
+output: html_document
+---
+
+
+### GEOからデータを取ってくる
+
+[GEOから遺伝子発現データを取ってくる](https://qiita.com/motthy/items/468e338c59c7d3dcd0d0)をなぞる形で大規模遺伝子発現データを取ってきてみます
+
+それなりのツールとして提供されていますが、それなりに面倒くさいです。
+
+とはいえ、自分で全部コードを書くよりは速いでしょう。
+
+
+
+```{r}
+# install.packages(c("Biobase","BiocManager","data.table")c
+# BiocManager::install("GEOquery")
+```
+
+```{r}
+library(Biobase)
+library(GEOquery)
+library(data.table)
+```
+
+```{r}
+#gsem <- getGEO("GSE59143",GSEMatrix = T)
+#gse <- getGEO("GSE59143",GSEMatrix = F) 
+```
+すでに時間のかかるダウンロード処理は終えてある
+```{r}
+load(file = "GSE59143.Rdata")
+```
+```{r}
+x <- pData(phenoData(gsem[[1]]))
+y <- gse@gsms
+dat <- Table(y[[1]])
+dat <- dat[,1:2]
+
+for (i in 2:length(y)){
+  sub_dat <- Table(y[[i]])
+  dat <- cbind(dat,sub_dat[,2])
+}
+dat <- data.frame(dat,row.names = 1)
+colnames(dat) <- x$geo_accession
+```
+
+```{r}
+image(as.matrix(dat))
+```
+```{r}
+cor.mat <- cor(as.matrix(dat))
+image(cor.mat)
+```
+
+```{r}
+d <- dist(t(as.matrix(dat)))
+plot(hclust(d))
+```
+```{r}
+#heatmap(as.matrix(dat))
+```
+
+```{r}
+#save(dat,file = "GSE59143.Rdata")
+```
+```{r}
+#load(file = "GSE59143.Rdata")
+```
