@@ -1,4 +1,54 @@
 ---
-title: "�_���̃f�[�^��̓��\�b�h��ǂށE��͌��ʂ����߂���"
+title: "論文のデータ解析メソッドを読む・解析結果を解釈する"
 output: html_document
 ---
+
+## テキスト
+
+色々、考えてみたけれど、このコンテンツのこの並べ方より良い方法が思いつかないので
+
+[Statistics for Biologists](https://www.nature.com/collections/qghhqm/pointsofsignificance)
+
+() で括っている項は飛ばすかもしれない項
+
+* Importance of being uncertain 
+* Error Bars
+* Significance, P values and t-tests
+* Power and sample size
+* Comparing samples—part I (t-tests)
+* Comparing samples—part II (Multiple testing; FWER vs. FDR)
+* Nonparametric tests 
+* ((Designing comparative experiments))
+* (Analysis of variance and blocking )
+* Replication
+* ((Nested designs))
+* ((Two-factor designs))
+* (Sources of variation)
+* ((Split plot design))
+* (Bayes' theorem)
+* Bayesian statistics
+* (Sampling distribution and the bootstrap)
+* ((Baeyesian networks))
+* (Association, correlation and causation)
+* Simple linear regression
+* ((Multiple linear regression))
+* (Analyzing outliers: influential or nuisance)
+* ((Regression diagnostics))
+* Logistic regression
+* ((Classification evaluation))
+* Model selection and overfitting
+* (Regularization)
+* (P values and the search for significance)
+* ((Interpreting P values))
+* Tabular data
+* Clustering
+* Principal componenet analysis
+* ((Classification and regression trees))
+* (Ensemble methods: bagging and random forests)
+* Machine learning: a primer
+* Machine learning: supervised methods
+* ((Statistics versus machine learning))
+* (The curse(s) of dimensionality)
+* ((Optimal experimental design))
+* ((Predicting with confidence and tolerance))
+* ((Two-level factorial experiments))
