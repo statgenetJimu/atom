@@ -58,6 +58,8 @@ for(i in 1:n.trials){
 
 また、コンピュータを立ち上げ、アプリケーションRを起動すれば、同様の実験が可能であるので、自身で実験した結果を用いて実験記録を書いてもよい。
 
+この課題はPandAにアップロードする必要はない。
+
 
 #### 相互チェックと、修正の仕方
 
@@ -98,6 +100,8 @@ for(i in 1:n.trials){
 あなたは、データ管理室で働いており、届くデータの記録を取る仕事を担当しています。
 
 配布資料のように届いたデータを整理してエクセルファイルにまとめなさい。
+
+そしてそのエクセルファイルをPandAにアップロードしなさい。
 
 #### 相互チェックと、修正の仕方
 
@@ -149,3 +153,7 @@ hoge2.xlsx
 * 公共のデータベースでは、簡単なデータの確認・解析ができるようになっている場合もある
 
 [togotv "NCBI GEOのデータセットブラウザを使って公共データの遺伝子発現解析を行う 2019"](https://www.youtube.com/watch?v=-RdKozGzbbU)
+
+### 講義内課題３
+
+* ある論文 "Human Sox4 facilitates the development of CXCL13-producing helper T cells in inflammatory environments, by Yoshitomi et al." (doi: 10.1038/s41467-018-06187-0) (doiとはデジタルオブジェクト識別子。論文の識別ID)が利用している、GEO登録データセットのGEOデータベースaccession numberを確認２つ確認し、それぞれの登録日と登録者を記したファイルをPandAにアップロードしなさい。
