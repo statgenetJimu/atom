@@ -15,8 +15,8 @@ output: html_document
 
 
 ```{r}
-# install.packages(c("Biobase","BiocManager","data.table")c
-# BiocManager::install("GEOquery")
+install.packages(c("Biobase","BiocManager","data.table"))
+BiocManager::install("GEOquery")
 ```
 
 ```{r}
