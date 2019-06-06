@@ -1,0 +1,143 @@
+---
+title: "概日リズム３変数"
+author: "ryamada"
+date: "2019年6月6日"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(knitr)
+library(rgl)
+knit_hooks$set(webgl = hook_webgl)
+```
+
+## ６月５日に扱った、「概日リズム」 周期的振動を作り出すモデル
+
+$$
+\frac{dM}{dt} = \frac{k}{h^n + P^n} - \frac{aM}{a' + M}\\
+\frac{dR}{dt} = \frac{sM}{s' + M} - \frac{dR}{d' + R} - \frac{uR}{u' + R} + \frac{vP}{v' + P}\\
+\frac{dP}{dt} = \frac{uR}{u'+R} - \frac{vP}{v' + P}
+$$
+
+## 離散的に近似する～差分方程式
+
+$dX,dt$は無限小だけれど、そこそこに小さいのであれば、有限小の$\Delta X, \Delta t$にしても、ま、いいか、という式
+
+$$
+\frac{\Delta M}{\Delta t} = \frac{k}{h^n + P^n} - \frac{aM}{a' + M}\\
+\frac{\Delta R}{\Delta t} = \frac{sM}{s' + M} - \frac{dR}{d' + R} - \frac{uR}{u' + R} + \frac{vP}{v' + P}\\
+\frac{\Delta P}{\Delta t} = \frac{uR}{u'+R} - \frac{vP}{v' + P}
+$$
+
+変化量を書き直す
+$$
+\Delta M = \Delta t \times (\frac{k}{h^n + P^n} - \frac{aM}{a' + M})\\
+\Delta R = \Delta t \times (\frac{sM}{s' + M} - \frac{dR}{d' + R} - \frac{uR}{u' + R} + \frac{vP}{v' + P})\\
+\Delta P = \Delta t \times (\frac{uR}{u'+R} - \frac{vP}{v' + P})
+$$
+
+
+
+## シミュレーションする
+
+* 有限小時間幅$\Delta t$を定める
+* ステップ数 n を定める。$\Delta t \times n$がシミュレーションする時間になる
+* 出てくる変数を２種類に分ける
+    + 定数(Constants)
+    + 時間で変化する変数(時間の関数) (Variables)
+* Constantsを与える
+* Variablesにステップ数に見合う長さの記録用ベクトルを作る
+* Variablesに初期値を与える
+* $\Delta t$ごとに、Variables の変化量 $\Delta X$を計算し、加算する
+* 算出した値は保管する
+
+### $\Delta t$
+```{r}
+dt <- 10^(-2)
+N <- 10000
+```
+### 定数
+```{r}
+k <- 1
+h <- 1
+n <- 1
+a <- 1
+a. <- 1
+s <- 2
+s. <- 2
+d <- 1
+d. <- 1
+u <- 2
+u. <- 2
+v <- 1
+v. <- 1
+```
+
+### Variables 時間の変数
+```{r}
+M <- rep(0,N)
+P <- rep(0,N)
+R <- rep(0,N)
+
+M[1] <- 1
+P[1] <- 1
+R[1] <- 1
+```
+
+### 時間を進める
+
+```{r}
+for(i in 2:N){
+  # 今の時刻のVariablesの値
+  M.now <- M[i-1]
+  P.now <- P[i-1]
+  R.now <- R[i-1]
+  # 変化量を計算する
+  dM <- dt * (k/(h^n + P.now^n) - (a*M.now)/(a.+M.now))
+  dR <- dt * ((s*M.now)/(s. +M.now) - (d*R.now)/(d. + R.now) - (u*R.now)/(u. + R.now) + (v*P.now)/(v. +P.now))
+  dP <- dt * ((u*R.now)/(u. + R.now) - v*P.now/(v.+P.now))
+  
+  # dt後の値を格納する
+  M[i] <- M.now + dM
+  R[i] <- R.now + dR 
+  P[i] <- P.now + dP 
+}
+```
+### 様子を見てみる
+
+#### 時間軸に沿って変化具合を見る
+```{r}
+par(mfcol=c(1,3)) # 画面を１行３列に分ける
+plot(M)
+plot(R)
+plot(P)
+```
+
+３変数併せてプロットする
+```{r}
+par(mfcol = c(1,1))
+plot(M,type="l")
+points(R,type="l",ncol=2)
+points(P,type="l",ncol=3)
+```
+
+別法
+
+```{r}
+MRP <- cbind(M,R,P)
+matplot(MRP,type="l")
+```
+
+#### 状態空間で見てみる
+
+２変数ごとにみる
+
+```{r}
+pairs(MRP)
+```
+
+３変数を３次元空間で見る
+```{r,webgl=TRUE}
+
+plot3d(MRP)
+```
