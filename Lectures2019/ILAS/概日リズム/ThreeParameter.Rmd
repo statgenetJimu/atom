@@ -141,3 +141,77 @@ pairs(MRP)
 
 plot3d(MRP)
 ```
+
+## 発展～微分方程式を指定すると、計算してくれるパッケージもある
+
+```{r}
+# install.packages("deSolve")
+```
+
+[こちら](https://www.sixhat.net/lorenz-attractor-in-r.html)のページの例は「ローレンツアトラクタと呼ばれる非線形微分方程式の例
+
+定数parametersと、初期値 stateを定め、時間刻み情報tとにより、連立微分方程式を以下のように書く
+
+```{r}
+parameters <- c(s = 10, r = 28, b = 8/3)
+state <- c(X = 0, Y = 1, Z = 1)
+ 
+Lorenz <- function(t, state, parameters) {
+    with(as.list(c(state, parameters)), {
+        dX <- s * (Y - X)
+        dY <- X * (r - Z) - Y
+        dZ <- X * Y - b * Z
+        list(c(dX, dY, dZ))
+    })
+}
+```
+ode()関数がシミュレーションしてくれる
+```{r}
+times <- seq(0, 50, by = 0.01)
+library(deSolve)
+out <- ode(y = state, times = times, func = Lorenz, parms = parameters)
+ 
+par(oma = c(0, 0, 3, 0))
+plot(out, xlab = "time", ylab = "-")
+plot(out[, "Y"], out[, "Z"], pch = ".", type = "l")
+mtext(outer = TRUE, side = 3, "Lorenz model", cex = 1.5)
+```
+
+
+これに沿って、概日リズムモデルを書き換えてみよう
+
+```{r}
+
+parameters <- c(k = 1,h = 1, n = 1,a = 1,a. = 1,s = 2,s. =2, d = 1,d. = 1,u = 2, u. = 2, v = 1, v. = 1)
+state <- c(M = 1, R = 1, P = 1) 
+
+our.model <- function(t, state, parameters) {
+    with(as.list(c(state, parameters)), {
+        dM <- (k/(h^n + P^n) - (a*M)/(a.+M))
+        dR <- ((s*M)/(s. +M) - (d*R)/(d. + R) - (u*R)/(u. + R) + (v*P)/(v. +P))
+        dP <- ((u*R)/(u. + R) - v*P/(v.+P))  
+
+        list(c(dM, dR, dP))
+    })
+}
+```
+
+
+```{r}
+times <- seq(0, 50, by = 0.01)
+
+#out <- ode(y = state, times = times, func = Lorenz, parms = parameters)
+out <- ode(y = state, times = times, func = our.model, parms = parameters)
+```
+
+```{r}
+matplot(out,type="l")
+```
+```{r,webgl=TRUE}
+plot3d(out[,2:4]) # 第１列は時刻情報
+```
+
+
+
+
+
