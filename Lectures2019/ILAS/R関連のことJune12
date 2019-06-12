@@ -1,0 +1,19 @@
+R 関連のこと
+
+１　Rstudio　と言うアプリケーションを使ってみよう
+
+RstudioはRのコードも書きやすく、数式も綺麗に書けて便利です。
+
+http://memorandum2015.sakura.ne.jp/index_rstudio.html　
+
+からダウンロード
+
+２　パッケージのインストール
+
+例えば、三次元プロットをしたい時、rglと言うパッケージをインストールして使いたいとします。
+
+install.package("rgl")
+
+と打ちます。時間がかかるかもしれません。
+パッケージのインストールで困ったら　"https://stats.biopapyrus.jp/r/basic/package.html"
+を参照しましょう。
