@@ -1,0 +1,11 @@
+https://www.youtube.com/watch?v=1gZT3PyiQTY  # お話あり
+http://www.akoamay.com/rddynamics/index.html # いろいろな例
+https://www.youtube.com/watch?v=fePeqBacYUM # 別な例
+http://www.theshapeofmath.com/princeton/dynsys/turinginst1 # 英語だけれど偏微分方程式を使いながら説明
+https://www.youtube.com/watch?v=PtPK_xx5Hks # とにかく、模様の変化
+https://www.youtube.com/watch?v=aD6awSOAMM8 # グーグルアースが見つけた模様
+
+https://www.youtube.com/watch?v=BV9ny785UNc # 反応拡散系のコーディングコンテスト講義
+https://stackoverflow.com/questions/46932432/solving-2d-reaction-diffusion-equation-using-crank-nicolson # そのべた書きRコード(遅い)
+
+https://ryamada.hatenadiary.jp/entry/20170302/1488401188 # 山田のまあまあ早いけれど、それほど模様は楽しくない二次元グリッド反応拡散系コード
