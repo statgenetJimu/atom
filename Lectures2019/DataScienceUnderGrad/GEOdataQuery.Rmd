@@ -1,21 +1,21 @@
 ---
-title: "GEO‚©‚ç‚Ìƒf[ƒ^‚Ìæ“¾"
+title: "GEOã‹ã‚‰ã®ãƒ‡ãƒ¼ã‚¿ã®å–å¾—"
 output: html_document
 ---
 
 
-### GEO‚©‚çƒf[ƒ^‚ğæ‚Á‚Ä‚­‚é
+### GEOã‹ã‚‰ãƒ‡ãƒ¼ã‚¿ã‚’å–ã£ã¦ãã‚‹
 
-[GEO‚©‚çˆâ“`q”­Œ»ƒf[ƒ^‚ğæ‚Á‚Ä‚­‚é](https://qiita.com/motthy/items/468e338c59c7d3dcd0d0)‚ğ‚È‚¼‚éŒ`‚Å‘å‹K–Íˆâ“`q”­Œ»ƒf[ƒ^‚ğæ‚Á‚Ä‚«‚Ä‚İ‚Ü‚·
+[GEOã‹ã‚‰éºä¼å­ç™ºç¾ãƒ‡ãƒ¼ã‚¿ã‚’å–ã£ã¦ãã‚‹](https://qiita.com/motthy/items/468e338c59c7d3dcd0d0)ã‚’ãªãã‚‹å½¢ã§å¤§è¦æ¨¡éºä¼å­ç™ºç¾ãƒ‡ãƒ¼ã‚¿ã‚’å–ã£ã¦ãã¦ã¿ã¾ã™
 
-‚»‚ê‚È‚è‚Ìƒc[ƒ‹‚Æ‚µ‚Ä’ñ‹Ÿ‚³‚ê‚Ä‚¢‚Ü‚·‚ªA‚»‚ê‚È‚è‚É–Ê“|‚­‚³‚¢‚Å‚·B
+ãã‚Œãªã‚Šã®ãƒ„ãƒ¼ãƒ«ã¨ã—ã¦æä¾›ã•ã‚Œã¦ã„ã¾ã™ãŒã€ãã‚Œãªã‚Šã«é¢å€’ãã•ã„ã§ã™ã€‚
 
-‚Æ‚Í‚¢‚¦A©•ª‚Å‘S•”ƒR[ƒh‚ğ‘‚­‚æ‚è‚Í‘¬‚¢‚Å‚µ‚å‚¤B
+ã¨ã¯ã„ãˆã€è‡ªåˆ†ã§å…¨éƒ¨ã‚³ãƒ¼ãƒ‰ã‚’æ›¸ãã‚ˆã‚Šã¯é€Ÿã„ã§ã—ã‚‡ã†ã€‚
 
 
 
 ```{r}
-install.packages(c("Biobase","BiocManager","data.table"))
+install.packages(c("Biobase","BiocManager","data.table"),repos="https://cran.cnr.berkeley.edu/")
 BiocManager::install("GEOquery")
 ```
 
@@ -26,10 +26,10 @@ library(data.table)
 ```
 
 ```{r}
-#gsem <- getGEO("GSE59143",GSEMatrix = T)
-#gse <- getGEO("GSE59143",GSEMatrix = F) 
+gsem <- getGEO("GSE59143",GSEMatrix = T)
+gse <- getGEO("GSE59143",GSEMatrix = F) 
 ```
-‚·‚Å‚ÉŠÔ‚Ì‚©‚©‚éƒ_ƒEƒ“ƒ[ƒhˆ—‚ÍI‚¦‚Ä‚ ‚é
+ã™ã§ã«æ™‚é–“ã®ã‹ã‹ã‚‹ãƒ€ã‚¦ãƒ³ãƒ­ãƒ¼ãƒ‰å‡¦ç†ã¯çµ‚ãˆã¦ãŠãæ‰‹ã‚‚ã‚ã‚‹
 ```{r}
 load(file = "GSE59143.Rdata")
 ```
@@ -64,8 +64,8 @@ plot(hclust(d))
 ```
 
 ```{r}
-#save(dat,file = "GSE59143.Rdata")
+save(dat,file = "GSE59143.Rdata")
 ```
 ```{r}
-#load(file = "GSE59143.Rdata")
+load(file = "GSE59143.Rdata")
 ```
