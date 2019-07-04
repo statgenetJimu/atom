@@ -31,7 +31,7 @@ gse <- getGEO("GSE59143",GSEMatrix = F)
 ```
 すでに時間のかかるダウンロード処理は終えておく手もある
 ```{r}
-load(file = "GSE59143.Rdata")
+# load(file = "GSE59143.Rdata")
 ```
 ```{r}
 x <- pData(phenoData(gsem[[1]]))
