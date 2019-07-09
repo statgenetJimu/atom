@@ -11,14 +11,14 @@ output: html_document
 
 () で括っている項は飛ばすかもしれない項
 
-* [Importance of being uncertain](https://www.nature.com/articles/nmeth.2613) Fig1 Fig2 
-* [Error Bars](https://www.nature.com/articles/nmeth.2659) Fig2
-* [Significance, P values and t-tests](https://www.nature.com/articles/nmeth.2698) Fig1 Fig3
-* [Power and sample size](https://www.nature.com/articles/nmeth.2738) Fig3
-* [Visualizing samples with box plots](https://www.nature.com/articles/nmeth.2813) Fig1 Fig3
-* [Comparing samples—part I (t-tests)](https://www.nature.com/articles/nmeth.2858) Fig1 Fig3
-* [Comparing samples—part II (Multiple testing; FWER vs. FDR)](https://www.nature.com/articles/nmeth.2900) Fig 1 Fig 3
-* [Nonparametric tests](https://www.nature.com/articles/nmeth.2937) Fig2 
+* 1 [Importance of being uncertain](https://www.nature.com/articles/nmeth.2613) Fig1 Fig2 
+* 2 [Error Bars](https://www.nature.com/articles/nmeth.2659) Fig2
+* 3 [Significance, P values and t-tests](https://www.nature.com/articles/nmeth.2698) Fig1 Fig3
+* 4 [Power and sample size](https://www.nature.com/articles/nmeth.2738) Fig3
+* 5 [Visualizing samples with box plots](https://www.nature.com/articles/nmeth.2813) Fig1 Fig3
+* 6 [Comparing samples—part I (t-tests)](https://www.nature.com/articles/nmeth.2858) Fig1 Fig3
+* 7 [Comparing samples—part II (Multiple testing; FWER vs. FDR)](https://www.nature.com/articles/nmeth.2900) Fig 1 Fig 3
+* 8[Nonparametric tests](https://www.nature.com/articles/nmeth.2937) Fig2 
 * ((Designing comparative experiments))
 * (Analysis of variance and blocking )
 * ((Replication))
@@ -26,28 +26,28 @@ output: html_document
 * ((Two-factor designs))
 * (Sources of variation)
 * ((Split plot design))
-* [Bayes' theorem](https://www.nature.com/articles/nmeth.3335) No fig
-* [Bayesian statistics](https://www.nature.com/articles/nmeth.3368) Fig1 Fig2
+* 9 [Bayes' theorem](https://www.nature.com/articles/nmeth.3335) No fig
+* 10 [Bayesian statistics](https://www.nature.com/articles/nmeth.3368) Fig1 Fig2
 * (Sampling distribution and the bootstrap)
 * ((Baeyesian networks))
 * (Association, correlation and causation)
-* [Simple linear regression](https://www.nature.com/articles/nmeth.3627) Fig1 Fig3
+* 11 [Simple linear regression](https://www.nature.com/articles/nmeth.3627) Fig1 Fig3
 * ((Multiple linear regression))
 * (Analyzing outliers: influential or nuisance)
 * ((Regression diagnostics))
-* [Logistic regression](https://www.nature.com/articles/nmeth.3904) Fig1 Fig2 
+* 12 [Logistic regression](https://www.nature.com/articles/nmeth.3904) Fig1 Fig2 
 * ((Classification evaluation))
-* [Model selection and overfitting](https://www.nature.com/articles/nmeth.3968) Fig1 Fig3
+* 13 [Model selection and overfitting](https://www.nature.com/articles/nmeth.3968) Fig1 Fig3
 * (Regularization)
-* [P values and the search for significance](https://www.nature.com/articles/nmeth.4120) Fig1
-* [Interpreting P values](https://www.nature.com/articles/nmeth.4210) No fig, but title.
-* [Tabular data](https://www.nature.com/articles/nmeth.4239) Table1
-* [Clustering](https://www.nature.com/articles/nmeth.4299) Fig1 Fig2
-* [Principal componenet analysis](https://ja.wikipedia.org/wiki/%E4%B8%BB%E6%88%90%E5%88%86%E5%88%86%E6%9E%90) Wiki image
+* 14 [P values and the search for significance](https://www.nature.com/articles/nmeth.4120) Fig1
+* 15 [Interpreting P values](https://www.nature.com/articles/nmeth.4210) No fig, but title.
+* 16 [Tabular data](https://www.nature.com/articles/nmeth.4239) Table1
+* 17 [Clustering](https://www.nature.com/articles/nmeth.4299) Fig1 Fig2
+* 18 [Principal componenet analysis](https://ja.wikipedia.org/wiki/%E4%B8%BB%E6%88%90%E5%88%86%E5%88%86%E6%9E%90) Wiki image
 * ((Classification and regression trees))
 * (Ensemble methods: bagging and random forests)
-* [Machine learning: a primer](https://ja.wikipedia.org/wiki/%E6%A9%9F%E6%A2%B0%E5%AD%A6%E7%BF%92) Wiki 右カラム
-* [Machine learning: supervised methods](https://www.nature.com/articles/nmeth.4551) Fig1 Fig2 Fig3
+* 19 [Machine learning: a primer](https://ja.wikipedia.org/wiki/%E6%A9%9F%E6%A2%B0%E5%AD%A6%E7%BF%92) Wiki 右カラム
+* 20 [Machine learning: supervised methods](https://www.nature.com/articles/nmeth.4551) Fig1 Fig2 Fig3
 * ((Statistics versus machine learning))
 * (The curse(s) of dimensionality)
 * ((Optimal experimental design))
